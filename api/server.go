@@ -1,16 +1,25 @@
-package internal
+package api
 
 import (
+	"log"
 	"net/http"
 
-	internal "github.com/archellir/bookmark.arcbjorn.com/internal/transport"
+	auth "github.com/archellir/bookmark.arcbjorn.com/internal/auth"
+	transport "github.com/archellir/bookmark.arcbjorn.com/internal/transport"
 )
 
-type Server struct{}
+type Server struct {
+	tokenMaker auth.IMaker
+}
 
 func (s *Server) Start() {
-	bookmarkHandler := &internal.BookmarkHandler{}
-	router := &internal.Router{
+	tokenMaker, err := auth.NewPasetoMaker("12345678901234567890123456789012")
+	if err != nil {
+		log.Fatalf("cannot create token maker: %w", err)
+	}
+
+	bookmarkHandler := &transport.BookmarkHandler{}
+	router := &transport.Router{
 		Handler: *bookmarkHandler,
 	}
 

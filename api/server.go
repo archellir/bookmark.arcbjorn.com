@@ -1,7 +1,7 @@
 package api
 
 import (
-	"log"
+	"fmt"
 	"net/http"
 
 	auth "github.com/archellir/bookmark.arcbjorn.com/internal/auth"
@@ -13,10 +13,10 @@ type Server struct {
 	tokenMaker auth.IMaker
 }
 
-func NewServer() *Server {
+func NewServer() (*Server, error) {
 	tokenMaker, err := auth.NewPasetoMaker("12345678901234567890123456789012")
 	if err != nil {
-		log.Fatalf("cannot create token maker: %w", err)
+		return nil, fmt.Errorf("cannot create token maker: %w", err)
 	}
 
 	bookmarkHandler := &transport.BookmarkHandler{}
@@ -29,7 +29,7 @@ func NewServer() *Server {
 		tokenMaker: tokenMaker,
 	}
 
-	return server
+	return server, nil
 }
 
 func (server *Server) Start() {

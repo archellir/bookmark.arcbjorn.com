@@ -23,7 +23,9 @@ OFFSET $2;
 
 -- name: UpdateBookmarkName :one
 UPDATE bookmarks
-SET name = $2
+SET
+  name = $2,
+  search_tokens = to_tsvector($2)
 WHERE id = $1
 RETURNING *;
 

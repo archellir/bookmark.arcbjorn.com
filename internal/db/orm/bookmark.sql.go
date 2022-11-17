@@ -176,7 +176,9 @@ func (q *Queries) SearchBookmarkByNameAndUrl(ctx context.Context, searchString s
 
 const updateBookmarkName = `-- name: UpdateBookmarkName :one
 UPDATE bookmarks
-SET name = $2
+SET
+  name = $2,
+  search_tokens = to_tsvector($2)
 WHERE id = $1
 RETURNING id, name, search_tokens, url, group_id, created_at
 `

@@ -5,13 +5,13 @@ down ::
 	docker-compose -f docker-compose.dev.yml down --volumes --remove-orphans
 
 create_db ::
-	docker exec -it bookmark.arcbjorn.com_postgres_1 createdb --username=root --owner=root arc_bookmark
+	docker exec -it bookmarkarcbjorncom_postgres_1 createdb --username=root --owner=root arc_bookmark
 
 create_db_test ::
-	docker exec -it bookmark.arcbjorn.com_postgres_1 createdb --username=root --owner=root arc_bookmark_test
+	docker exec -it bookmarkarcbjorncom_postgres_1 createdb --username=root --owner=root arc_bookmark_test
 
 drop_db ::
-	docker exec -it bookmark.arcbjorn.com_postgres_1 dropdb arc_bookmark
+	docker exec -it bookmarkarcbjorncom_postgres_1 dropdb arc_bookmark
 
 migration ::
 	migrate create -ext sql -dir internal/db/migrations -seq $(name)

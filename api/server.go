@@ -41,5 +41,5 @@ func NewServer() (*Server, error) {
 func (server *Server) Start() {
 	// addr := fmt.Sprint("localhost:", os.Getenv("SERVER_PORT"))
 
-	http.ListenAndServe("localhost:8080", server.Router)
+	http.ListenAndServe(":8080", server.Router)
 }

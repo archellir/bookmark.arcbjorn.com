@@ -11,3 +11,13 @@ services:
       - "5435:5432"
     volumes:
       - ./internal/db/data:/var/lib/postgresql/data
+
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "8080:8080"
+  #   depends_on:
+  #     - postgres
+  #   command: ["/app/build"]

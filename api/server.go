@@ -6,6 +6,7 @@ import (
 
 	auth "github.com/archellir/bookmark.arcbjorn.com/internal/auth"
 	transport "github.com/archellir/bookmark.arcbjorn.com/internal/transport"
+	handlers "github.com/archellir/bookmark.arcbjorn.com/internal/transport/handlers"
 )
 
 type Server struct {
@@ -19,9 +20,9 @@ func NewServer() (*Server, error) {
 		return nil, fmt.Errorf("cannot create token maker: %w", err)
 	}
 
-	bookmarkHandler := &transport.BookmarkHandler{}
+	bookmarkHandler := &handlers.BookmarkHandler{}
 	router := &transport.Router{
-		Handler: *bookmarkHandler,
+		Bookmarks: *bookmarkHandler,
 	}
 
 	server := &Server{

@@ -1,50 +1,27 @@
 package transport
 
-import "net/http"
+import (
+	"net/http"
+	"regexp"
+
+	handlers "github.com/archellir/bookmark.arcbjorn.com/internal/transport/handlers"
+)
 
 type Router struct {
-	Handler BookmarkHandler
+	Bookmarks handlers.BookmarkHandler
 }
 
+var (
+	isBookmark    = regexp.MustCompile(`^/bm`)
+	isHealthCheck = regexp.MustCompile(`^/$`)
+)
+
 func (router *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch r.URL.Path {
-	case "/":
+	switch {
+	case isHealthCheck.MatchString(r.URL.Path):
 		w.WriteHeader(http.StatusOK)
-	case "/all":
-		if r.Method != "GET" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		router.Handler.GetAll(w, r)
-
-	case "/get":
-		if r.Method != "GET" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		router.Handler.GetOne(w, r)
-
-	case "/create":
-		if r.Method != "POST" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		router.Handler.Create(w, r)
-
-	case "/update":
-		if r.Method != "PUT" && r.Method != "PATCH" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		router.Handler.Update(w, r)
-
-	case "/delete":
-		if r.Method != "DELETE" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		router.Handler.Delete(w, r)
-
+	case isBookmark.MatchString(r.URL.Path):
+		router.Bookmarks.Handle(w, r)
 	default:
 		w.WriteHeader(http.StatusBadRequest)
 	}

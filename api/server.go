@@ -21,8 +21,10 @@ func NewServer() (*Server, error) {
 	}
 
 	bookmarkHandler := &handlers.BookmarkHandler{}
+	tagsHandler := &handlers.TagHandler{}
 	router := &transport.Router{
 		Bookmarks: *bookmarkHandler,
+		Tags:      *tagsHandler,
 	}
 
 	server := &Server{

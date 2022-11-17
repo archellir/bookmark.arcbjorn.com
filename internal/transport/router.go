@@ -9,11 +9,13 @@ import (
 
 type Router struct {
 	Bookmarks handlers.BookmarkHandler
+	Tags      handlers.TagHandler
 }
 
 var (
-	isBookmark    = regexp.MustCompile(`^/bm`)
 	isHealthCheck = regexp.MustCompile(`^/$`)
+	isBookmark    = regexp.MustCompile(`^/bm`)
+	isTag         = regexp.MustCompile(`^/tags`)
 )
 
 func (router *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -22,6 +24,8 @@ func (router *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	case isBookmark.MatchString(r.URL.Path):
 		router.Bookmarks.Handle(w, r)
+	case isTag.MatchString(r.URL.Path):
+		router.Tags.Handle(w, r)
 	default:
 		w.WriteHeader(http.StatusBadRequest)
 	}

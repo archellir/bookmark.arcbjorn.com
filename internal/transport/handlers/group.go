@@ -4,10 +4,22 @@ import (
 	"net/http"
 
 	orm "github.com/archellir/bookmark.arcbjorn.com/internal/db/orm"
+	services "github.com/archellir/bookmark.arcbjorn.com/internal/services"
 )
 
 type GroupHandler struct {
-	Store *orm.Store
+	Service *services.GroupService
+}
+
+func NewGroupHandler(store *orm.Store) *GroupHandler {
+	groupService := &services.GroupService{
+		Store: store,
+	}
+	groupHandler := &GroupHandler{
+		Service: groupService,
+	}
+
+	return groupHandler
 }
 
 func (handler *GroupHandler) Handle(w http.ResponseWriter, r *http.Request) {
@@ -17,57 +29,37 @@ func (handler *GroupHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		handler.GetAll(w, r)
+		handler.Service.List(w, r)
 
 	case "/groups/get":
 		if r.Method != "GET" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		handler.GetOne(w, r)
+		handler.Service.GetOne(w, r)
 
 	case "/groups/create":
 		if r.Method != "POST" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		handler.Create(w, r)
+		handler.Service.Create(w, r)
 
 	case "/groups/update":
 		if r.Method != "PUT" && r.Method != "PATCH" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		handler.Update(w, r)
+		handler.Service.Update(w, r)
 
 	case "/groups/delete":
 		if r.Method != "DELETE" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		handler.Delete(w, r)
+		handler.Service.Delete(w, r)
 
 	default:
 		w.WriteHeader(http.StatusBadRequest)
 	}
-}
-
-func (handler *GroupHandler) GetAll(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("all groups"))
-}
-
-func (handler *GroupHandler) GetOne(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("one groups"))
-}
-
-func (handler *GroupHandler) Create(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("created groups"))
-}
-
-func (handler *GroupHandler) Update(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("updated groups"))
-}
-
-func (handler *GroupHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("true"))
 }

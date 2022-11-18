@@ -4,10 +4,22 @@ import (
 	"net/http"
 
 	orm "github.com/archellir/bookmark.arcbjorn.com/internal/db/orm"
+	services "github.com/archellir/bookmark.arcbjorn.com/internal/services"
 )
 
 type TagHandler struct {
-	Store *orm.Store
+	Service *services.TagService
+}
+
+func NewTagHandler(store *orm.Store) *TagHandler {
+	tagService := &services.TagService{
+		Store: store,
+	}
+	tagHandler := &TagHandler{
+		Service: tagService,
+	}
+
+	return tagHandler
 }
 
 func (handler *TagHandler) Handle(w http.ResponseWriter, r *http.Request) {
@@ -17,57 +29,37 @@ func (handler *TagHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		handler.GetAll(w, r)
+		handler.Service.List(w, r)
 
 	case "/tags/get":
 		if r.Method != "GET" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		handler.GetOne(w, r)
+		handler.Service.GetOne(w, r)
 
 	case "/tags/create":
 		if r.Method != "POST" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		handler.Create(w, r)
+		handler.Service.Create(w, r)
 
 	case "/tags/update":
 		if r.Method != "PUT" && r.Method != "PATCH" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		handler.Update(w, r)
+		handler.Service.Update(w, r)
 
 	case "/tags/delete":
 		if r.Method != "DELETE" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		handler.Delete(w, r)
+		handler.Service.Delete(w, r)
 
 	default:
 		w.WriteHeader(http.StatusBadRequest)
 	}
-}
-
-func (handler *TagHandler) GetAll(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("all tags"))
-}
-
-func (handler *TagHandler) GetOne(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("one tag"))
-}
-
-func (handler *TagHandler) Create(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("created tag"))
-}
-
-func (handler *TagHandler) Update(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("updated tag"))
-}
-
-func (handler *TagHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("true"))
 }

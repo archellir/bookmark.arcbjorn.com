@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	orm "github.com/archellir/bookmark.arcbjorn.com/internal/db/orm"
 )
@@ -15,30 +14,14 @@ type BookmarkService struct {
 }
 
 func (service *BookmarkService) List(w http.ResponseWriter, r *http.Request) error {
-	limit := defaultLimit
-	offset := defaultOffset
-
-	if r.URL.Query().Has(limitParamName) {
-		limitParam := r.URL.Query().Get(limitParamName)
-		parsedInt, err := strconv.Atoi(limitParam)
-		if err != nil {
-			return fmt.Errorf("error parsing list limit")
-		}
-		limit = parsedInt
-	}
-
-	if r.URL.Query().Has(offsetParamName) {
-		offsetParam := r.URL.Query().Get(offsetParamName)
-		parsedInt, err := strconv.Atoi(offsetParam)
-		if err != nil {
-			return fmt.Errorf("error parsing list offset")
-		}
-		offset = parsedInt
+	limit, offset, err := GetListParams(r.URL)
+	if err != nil {
+		return err
 	}
 
 	args := &orm.ListBookmarksParams{
-		Limit:  int32(limit),
-		Offset: int32(offset),
+		Limit:  limit,
+		Offset: offset,
 	}
 
 	result, err := service.Store.Queries.ListBookmarks(context.Background(), *args)

@@ -38,6 +38,13 @@ func (handler *BookmarkHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		}
 		handler.Service.GetOne(w, r)
 
+	case "/bm/search":
+		if r.Method != "GET" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		handler.Service.SearchByNameAndUrl(w, r)
+
 	case "/bm/create":
 		if r.Method != "POST" {
 			w.WriteHeader(http.StatusMethodNotAllowed)

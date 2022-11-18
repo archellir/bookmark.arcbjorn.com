@@ -22,8 +22,8 @@ CREATE TABLE "bookmarks_tags" (
   PRIMARY KEY ("bookmark_id", "tag_id")
 );
 
-ALTER TABLE "bookmarks_tags" ADD FOREIGN KEY ("bookmark_id") REFERENCES "bookmarks" ("id");
-ALTER TABLE "bookmarks_tags" ADD FOREIGN KEY ("tag_id") REFERENCES "tags" ("id");
+ALTER TABLE "bookmarks_tags" ADD FOREIGN KEY ("bookmark_id") REFERENCES "bookmarks" ("id") ON DELETE CASCADE;
+ALTER TABLE "bookmarks_tags" ADD FOREIGN KEY ("tag_id") REFERENCES "tags" ("id") ON DELETE CASCADE;
 
 CREATE TABLE "groups" (
   "id" int generated always as identity PRIMARY KEY,

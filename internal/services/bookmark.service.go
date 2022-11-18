@@ -52,16 +52,19 @@ func (service *BookmarkService) Create(w http.ResponseWriter, r *http.Request) e
 	var createBookmarkDTO orm.CreateBookmarkParams
 	err := GetJson(r, createBookmarkDTO)
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		return fmt.Errorf("can not parse createBookmarkDTO: %w", err)
 	}
 
 	result, err := service.Store.Queries.CreateBookmark(context.Background(), createBookmarkDTO)
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		return fmt.Errorf("can not create bookmark: %w", err)
 	}
 
 	err = service.returnJson(result, w)
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
 

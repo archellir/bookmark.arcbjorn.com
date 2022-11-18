@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"regexp"
 
+	orm "github.com/archellir/bookmark.arcbjorn.com/internal/db/orm"
 	handlers "github.com/archellir/bookmark.arcbjorn.com/internal/transport/handlers"
 )
 
@@ -19,6 +20,28 @@ var (
 	isTag         = regexp.MustCompile(`^/tags`)
 	isGroup       = regexp.MustCompile(`^/groups`)
 )
+
+func NewRouter(store *orm.Store) *Router {
+	bookmarkHandler := &handlers.BookmarkHandler{
+		Store: store,
+	}
+
+	tagsHandler := &handlers.TagHandler{
+		Store: store,
+	}
+
+	groupsHandler := &handlers.GroupHandler{
+		Store: store,
+	}
+
+	router := &Router{
+		Bookmarks: *bookmarkHandler,
+		Tags:      *tagsHandler,
+		Groups:    *groupsHandler,
+	}
+
+	return router
+}
 
 func (router *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch {

@@ -48,8 +48,24 @@ func (service *BookmarkService) GetOne(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("one bookmark"))
 }
 
-func (service *BookmarkService) Create(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("created bookmark"))
+func (service *BookmarkService) Create(w http.ResponseWriter, r *http.Request) error {
+	var createBookmarkDTO orm.CreateBookmarkParams
+	err := GetJson(r, createBookmarkDTO)
+	if err != nil {
+		return fmt.Errorf("can not parse createBookmarkDTO: %w", err)
+	}
+
+	result, err := service.Store.Queries.CreateBookmark(context.Background(), createBookmarkDTO)
+	if err != nil {
+		return fmt.Errorf("can not create bookmark: %w", err)
+	}
+
+	err = service.returnJson(result, w)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) {
@@ -58,4 +74,16 @@ func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) {
 
 func (service *BookmarkService) Delete(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("true"))
+}
+
+func (service *BookmarkService) returnJson(data interface{}, w http.ResponseWriter) error {
+	json, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("can not generate json: %w", err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(json)
+
+	return nil
 }

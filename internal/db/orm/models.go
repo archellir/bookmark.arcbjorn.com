@@ -10,12 +10,12 @@ import (
 )
 
 type Bookmark struct {
-	ID int64 `json:"id"`
+	ID int32 `json:"id"`
 	// Title of the web page document
 	Name         string        `json:"name"`
 	SearchTokens interface{}   `json:"search_tokens"`
 	Url          string        `json:"url"`
-	GroupID      sql.NullInt64 `json:"group_id"`
+	GroupID      sql.NullInt32 `json:"group_id"`
 	CreatedAt    time.Time     `json:"created_at"`
 }
 
@@ -25,19 +25,19 @@ type BookmarksTag struct {
 }
 
 type Group struct {
-	ID        int64     `json:"id"`
+	ID        int32     `json:"id"`
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
 type Tag struct {
-	ID        int64     `json:"id"`
+	ID        int32     `json:"id"`
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
 type User struct {
-	ID             int64          `json:"id"`
+	ID             int32          `json:"id"`
 	Username       sql.NullString `json:"username"`
 	HashedPassword string         `json:"hashed_password"`
 	CreatedAt      time.Time      `json:"created_at"`

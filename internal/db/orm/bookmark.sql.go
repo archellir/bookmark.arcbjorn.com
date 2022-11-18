@@ -43,7 +43,7 @@ DELETE FROM bookmarks
 WHERE id = $1
 `
 
-func (q *Queries) DeleteBookmark(ctx context.Context, id int64) error {
+func (q *Queries) DeleteBookmark(ctx context.Context, id int32) error {
 	_, err := q.db.ExecContext(ctx, deleteBookmark, id)
 	return err
 }
@@ -62,7 +62,7 @@ SELECT id, name, search_tokens, url, group_id, created_at FROM bookmarks
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetBookmark(ctx context.Context, id int64) (Bookmark, error) {
+func (q *Queries) GetBookmark(ctx context.Context, id int32) (Bookmark, error) {
 	row := q.db.QueryRowContext(ctx, getBookmark, id)
 	var i Bookmark
 	err := row.Scan(
@@ -81,7 +81,7 @@ SELECT id, name, search_tokens, url, group_id, created_at FROM bookmarks
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetBookmarkById(ctx context.Context, id int64) (Bookmark, error) {
+func (q *Queries) GetBookmarkById(ctx context.Context, id int32) (Bookmark, error) {
 	row := q.db.QueryRowContext(ctx, getBookmarkById, id)
 	var i Bookmark
 	err := row.Scan(
@@ -184,7 +184,7 @@ RETURNING id, name, search_tokens, url, group_id, created_at
 `
 
 type UpdateBookmarkNameParams struct {
-	ID   int64  `json:"id"`
+	ID   int32  `json:"id"`
 	Name string `json:"name"`
 }
 
@@ -210,7 +210,7 @@ RETURNING id, name, search_tokens, url, group_id, created_at
 `
 
 type UpdateBookmarkUrlParams struct {
-	ID  int64  `json:"id"`
+	ID  int32  `json:"id"`
 	Url string `json:"url"`
 }
 

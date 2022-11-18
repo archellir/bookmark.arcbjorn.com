@@ -71,6 +71,23 @@ func (service *BookmarkService) Create(w http.ResponseWriter, r *http.Request) e
 	return nil
 }
 
+func (service *BookmarkService) SearchByNameAndUrl(w http.ResponseWriter, r *http.Request) error {
+	searchString := r.URL.Query().Get(searchParam)
+	result, err := service.Store.Queries.SearchBookmarkByNameAndUrl(context.Background(), "%"+searchString+"%")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return fmt.Errorf("can not create bookmark: %w", err)
+	}
+
+	err = service.returnJson(result, w)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
+
+	return nil
+}
+
 func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("updated bookmark"))
 }

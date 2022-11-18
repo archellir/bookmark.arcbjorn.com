@@ -11,6 +11,7 @@ import (
 const (
 	limitParamName  = "limit"
 	offsetParamName = "offset"
+	searchParam     = "search"
 )
 
 const (

@@ -2,7 +2,6 @@
 CREATE TABLE "bookmarks" (
   "id" int generated always as identity PRIMARY KEY,
   "name" varchar NOT NULL,
-  "search_tokens" TSVECTOR NOT NULL,
   "url" varchar NOT NULL,
   "group_id" int,
   "created_at" timestamptz NOT NULL DEFAULT (now())

@@ -1,10 +1,9 @@
 -- name: CreateBookmark :one
 INSERT INTO bookmarks (
   name,
-  search_tokens,
   url
 ) VALUES (
-  $1, to_tsvector($1), $2
+  $1, $2
 ) RETURNING *;
 
 -- name: GetBookmarkById :one
@@ -23,9 +22,7 @@ OFFSET $2;
 
 -- name: UpdateBookmarkName :one
 UPDATE bookmarks
-SET
-  name = $2,
-  search_tokens = to_tsvector($2)
+SET name = $2
 WHERE id = $1
 RETURNING *;
 
@@ -38,8 +35,8 @@ RETURNING *;
 -- name: SearchBookmarkByNameAndUrl :many
 SELECT * FROM bookmarks  
 WHERE
-  url LIKE '%' + sqlc.arg(search_string)::text + '%' OR
-  name @@ to_tsquery(sqlc.arg(search_string)::text);
+  url ILIKE sqlc.arg(search_string)::text OR
+  name ILIKE sqlc.arg(search_string)::text;
 
 -- name: DeleteBookmark :exec
 DELETE FROM bookmarks

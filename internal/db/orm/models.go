@@ -12,11 +12,10 @@ import (
 type Bookmark struct {
 	ID int32 `json:"id"`
 	// Title of the web page document
-	Name         string        `json:"name"`
-	SearchTokens interface{}   `json:"search_tokens"`
-	Url          string        `json:"url"`
-	GroupID      sql.NullInt32 `json:"group_id"`
-	CreatedAt    time.Time     `json:"created_at"`
+	Name      string        `json:"name"`
+	Url       string        `json:"url"`
+	GroupID   sql.NullInt32 `json:"group_id"`
+	CreatedAt time.Time     `json:"created_at"`
 }
 
 type BookmarksTag struct {

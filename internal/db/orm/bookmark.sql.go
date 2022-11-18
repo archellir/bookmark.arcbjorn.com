@@ -12,11 +12,10 @@ import (
 const createBookmark = `-- name: CreateBookmark :one
 INSERT INTO bookmarks (
   name,
-  search_tokens,
   url
 ) VALUES (
-  $1, to_tsvector($1), $2
-) RETURNING id, name, search_tokens, url, group_id, created_at
+  $1, $2
+) RETURNING id, name, url, group_id, created_at
 `
 
 type CreateBookmarkParams struct {
@@ -30,7 +29,6 @@ func (q *Queries) CreateBookmark(ctx context.Context, arg CreateBookmarkParams) 
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.SearchTokens,
 		&i.Url,
 		&i.GroupID,
 		&i.CreatedAt,
@@ -58,7 +56,7 @@ func (q *Queries) DeleteBookmarks(ctx context.Context) error {
 }
 
 const getBookmark = `-- name: GetBookmark :one
-SELECT id, name, search_tokens, url, group_id, created_at FROM bookmarks
+SELECT id, name, url, group_id, created_at FROM bookmarks
 WHERE id = $1 LIMIT 1
 `
 
@@ -68,7 +66,6 @@ func (q *Queries) GetBookmark(ctx context.Context, id int32) (Bookmark, error) {
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.SearchTokens,
 		&i.Url,
 		&i.GroupID,
 		&i.CreatedAt,
@@ -77,7 +74,7 @@ func (q *Queries) GetBookmark(ctx context.Context, id int32) (Bookmark, error) {
 }
 
 const getBookmarkById = `-- name: GetBookmarkById :one
-SELECT id, name, search_tokens, url, group_id, created_at FROM bookmarks
+SELECT id, name, url, group_id, created_at FROM bookmarks
 WHERE id = $1 LIMIT 1
 `
 
@@ -87,7 +84,6 @@ func (q *Queries) GetBookmarkById(ctx context.Context, id int32) (Bookmark, erro
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.SearchTokens,
 		&i.Url,
 		&i.GroupID,
 		&i.CreatedAt,
@@ -96,7 +92,7 @@ func (q *Queries) GetBookmarkById(ctx context.Context, id int32) (Bookmark, erro
 }
 
 const listBookmarks = `-- name: ListBookmarks :many
-SELECT id, name, search_tokens, url, group_id, created_at FROM bookmarks
+SELECT id, name, url, group_id, created_at FROM bookmarks
 ORDER BY id
 LIMIT $1
 OFFSET $2
@@ -119,7 +115,6 @@ func (q *Queries) ListBookmarks(ctx context.Context, arg ListBookmarksParams) ([
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
-			&i.SearchTokens,
 			&i.Url,
 			&i.GroupID,
 			&i.CreatedAt,
@@ -138,10 +133,10 @@ func (q *Queries) ListBookmarks(ctx context.Context, arg ListBookmarksParams) ([
 }
 
 const searchBookmarkByNameAndUrl = `-- name: SearchBookmarkByNameAndUrl :many
-SELECT id, name, search_tokens, url, group_id, created_at FROM bookmarks  
+SELECT id, name, url, group_id, created_at FROM bookmarks  
 WHERE
-  url LIKE '%' + $1::text + '%' OR
-  name @@ to_tsquery($1::text)
+  url ILIKE $1::text OR
+  name ILIKE $1::text
 `
 
 func (q *Queries) SearchBookmarkByNameAndUrl(ctx context.Context, searchString string) ([]Bookmark, error) {
@@ -156,7 +151,6 @@ func (q *Queries) SearchBookmarkByNameAndUrl(ctx context.Context, searchString s
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
-			&i.SearchTokens,
 			&i.Url,
 			&i.GroupID,
 			&i.CreatedAt,
@@ -176,11 +170,9 @@ func (q *Queries) SearchBookmarkByNameAndUrl(ctx context.Context, searchString s
 
 const updateBookmarkName = `-- name: UpdateBookmarkName :one
 UPDATE bookmarks
-SET
-  name = $2,
-  search_tokens = to_tsvector($2)
+SET name = $2
 WHERE id = $1
-RETURNING id, name, search_tokens, url, group_id, created_at
+RETURNING id, name, url, group_id, created_at
 `
 
 type UpdateBookmarkNameParams struct {
@@ -194,7 +186,6 @@ func (q *Queries) UpdateBookmarkName(ctx context.Context, arg UpdateBookmarkName
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.SearchTokens,
 		&i.Url,
 		&i.GroupID,
 		&i.CreatedAt,
@@ -206,7 +197,7 @@ const updateBookmarkUrl = `-- name: UpdateBookmarkUrl :one
 UPDATE bookmarks
 SET url = $2
 WHERE id = $1
-RETURNING id, name, search_tokens, url, group_id, created_at
+RETURNING id, name, url, group_id, created_at
 `
 
 type UpdateBookmarkUrlParams struct {
@@ -220,7 +211,6 @@ func (q *Queries) UpdateBookmarkUrl(ctx context.Context, arg UpdateBookmarkUrlPa
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.SearchTokens,
 		&i.Url,
 		&i.GroupID,
 		&i.CreatedAt,

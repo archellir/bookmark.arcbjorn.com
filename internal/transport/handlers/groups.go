@@ -2,9 +2,13 @@ package transport
 
 import (
 	"net/http"
+
+	orm "github.com/archellir/bookmark.arcbjorn.com/internal/db/orm"
 )
 
-type GroupHandler struct{}
+type GroupHandler struct {
+	Store *orm.Store
+}
 
 func (handler *GroupHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {

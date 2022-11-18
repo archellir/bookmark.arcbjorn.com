@@ -3,7 +3,7 @@ CREATE TABLE "bookmarks" (
   "id" int generated always as identity PRIMARY KEY,
   "name" varchar NOT NULL,
   "url" varchar NOT NULL,
-  "group_id" int,
+  "group_id" int DEFAULT NULL,
   "created_at" timestamptz NOT NULL DEFAULT (now())
 );
 

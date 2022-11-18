@@ -62,7 +62,7 @@ func (service *BookmarkService) Create(w http.ResponseWriter, r *http.Request) e
 		return fmt.Errorf("can not create bookmark: %w", err)
 	}
 
-	err = service.returnJson(result, w)
+	err = ReturnJson(result, w)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return err
@@ -79,7 +79,7 @@ func (service *BookmarkService) SearchByNameAndUrl(w http.ResponseWriter, r *htt
 		return fmt.Errorf("can not create bookmark: %w", err)
 	}
 
-	err = service.returnJson(result, w)
+	err = ReturnJson(result, w)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return err
@@ -94,16 +94,4 @@ func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) {
 
 func (service *BookmarkService) Delete(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("true"))
-}
-
-func (service *BookmarkService) returnJson(data interface{}, w http.ResponseWriter) error {
-	json, err := json.Marshal(data)
-	if err != nil {
-		return fmt.Errorf("can not generate json: %w", err)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(json)
-
-	return nil
 }

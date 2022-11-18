@@ -47,3 +47,15 @@ func GetListParams(url *url.URL) (limit int32, offset int32, err error) {
 func GetJson(r *http.Request, target interface{}) error {
 	return json.NewDecoder(r.Body).Decode(target)
 }
+
+func ReturnJson(data interface{}, w http.ResponseWriter) error {
+	json, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("can not generate json: %w", err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(json)
+
+	return nil
+}

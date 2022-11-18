@@ -22,22 +22,10 @@ var (
 )
 
 func NewRouter(store *orm.Store) *Router {
-	bookmarkHandler := &handlers.BookmarkHandler{
-		Store: store,
-	}
-
-	tagsHandler := &handlers.TagHandler{
-		Store: store,
-	}
-
-	groupsHandler := &handlers.GroupHandler{
-		Store: store,
-	}
-
 	router := &Router{
-		Bookmarks: *bookmarkHandler,
-		Tags:      *tagsHandler,
-		Groups:    *groupsHandler,
+		Bookmarks: *handlers.NewBookmarkHandler(store),
+		Tags:      *handlers.NewTagHandler(store),
+		Groups:    *handlers.NewGroupHandler(store),
 	}
 
 	return router

@@ -1,7 +1,9 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strconv"
 )
@@ -39,4 +41,8 @@ func GetListParams(url *url.URL) (limit int32, offset int32, err error) {
 	}
 
 	return limit, offset, nil
+}
+
+func GetJson(r *http.Request, target interface{}) error {
+	return json.NewDecoder(r.Body).Decode(target)
 }

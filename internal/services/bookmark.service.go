@@ -50,7 +50,7 @@ func (service *BookmarkService) GetOne(w http.ResponseWriter, r *http.Request) {
 
 func (service *BookmarkService) Create(w http.ResponseWriter, r *http.Request) error {
 	var createBookmarkDTO orm.CreateBookmarkParams
-	err := GetJson(r, createBookmarkDTO)
+	err := GetJson(r, &createBookmarkDTO)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return fmt.Errorf("can not parse createBookmarkDTO: %w", err)

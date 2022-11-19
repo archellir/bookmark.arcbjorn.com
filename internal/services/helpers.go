@@ -21,6 +21,12 @@ const (
 )
 
 const (
+	ErrorTitleGroup          string = "group: "
+	ErrorTitleGroupNotFound  string = "can not find group: "
+	ErrorTitleGroupsNotFound string = "can not find groups: "
+)
+
+const (
 	ErrorTitleBookmark                   string = "bookmark: "
 	ErrorTitleBookmarkNoId               string = "can not get bookmark ID: "
 	ErrorTitleBookmarkCreateDtoNotParsed string = "can not parse createBookmarkDTO: "
@@ -33,7 +39,6 @@ const (
 	ErrorTitleBookmarkNameNotUpdated     string = "can not update bookmark name: "
 	ErrorTitleBookmarkUrlNotUpdated      string = "can not update bookmark url: "
 	ErrorTitleBookmarkGroupIdNotUpdated  string = "can not update bookmark group: "
-	ErrorTitleGroupNotFound              string = "can not find group: "
 	ErrorTitleUrlNotStaticallyValid      string = "url is statically not valid"
 	ErrorTitleUrlNotValid                string = "can not validate url: "
 )

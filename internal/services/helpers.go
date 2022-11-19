@@ -20,6 +20,21 @@ const (
 	defaultOffset int32 = 0
 )
 
+const (
+	ErrorTitleBookmark                   string = "bookmark: "
+	ErrorTitleBookmarkNoId               string = "can not get bookmark ID: "
+	ErrorTitleBookmarkCreateDtoNotParsed string = "can not parse createBookmarkDTO: "
+	ErrorTitleBookmarkNotCreated         string = "can not create bookmark: "
+	ErrorTitleBookmarkNotFound           string = "can not find bookmark: "
+	ErrorTitleBookmarksNotFound          string = "can not find bookmarks: "
+	ErrorTitleBookmarkNotDeleted         string = "can not delete bookmark: "
+	ErrorTitleBookmarkUpdateDtoNotParsed string = "can not parse updateBookmarkDTO: "
+	ErrorTitleBookmarkNameNotUpdated     string = "can not update bookmark name: "
+	ErrorTitleBookmarkUrlNotUpdated      string = "can not update bookmark url: "
+	ErrorTitleBookmarkGroupIdNotUpdated  string = "can not update bookmark group: "
+	ErrorTitleGroupNotFound              string = "can not find group: "
+)
+
 func GetListParams(url *url.URL) (limit int32, offset int32, err error) {
 	limit = defaultLimit
 	offset = defaultOffset
@@ -80,4 +95,11 @@ func GetIdFromUrlQuery(url *url.URL) (id int32, err error) {
 	}
 
 	return int32(idInt64), nil
+}
+
+func ReturnResponseWithError(w http.ResponseWriter, response *tResponse, errorTitle string, err error) {
+	w.WriteHeader(http.StatusInternalServerError)
+	response.Error = errorTitle + err.Error()
+
+	ReturnJson(response, w)
 }

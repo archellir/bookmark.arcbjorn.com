@@ -95,11 +95,13 @@ func (service *BookmarkService) SearchByNameAndUrl(w http.ResponseWriter, r *htt
 }
 
 func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) error {
+	response := CreateResponse(nil, nil)
+
 	var updateBookmarkDTO tUpdateBookmarkParams
 	err := GetJson(r, &updateBookmarkDTO)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		return fmt.Errorf("can not parse updateBookmarkDTO: %w", err)
+		response.Error = "can not parse updateBookmarkDTO: " + err.Error()
 	}
 
 	if updateBookmarkDTO.ID == 0 {
@@ -112,7 +114,7 @@ func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) e
 	_, err = service.Store.Queries.GetBookmarkById(context.Background(), updateBookmarkDTO.ID)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		return fmt.Errorf("can not find bookmark to update: %w", err)
+		response.Error = "can not find bookmark to update: " + err.Error()
 	}
 
 	if updateBookmarkDTO.Name != "" {
@@ -124,7 +126,7 @@ func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) e
 		updatedBookmark, err = service.Store.Queries.UpdateBookmarkName(context.Background(), *nameDto)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			return fmt.Errorf("can not update bookmark name: %w", err)
+			response.Error = "can not update bookmark name: " + err.Error()
 		}
 	}
 
@@ -137,7 +139,7 @@ func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) e
 		updatedBookmark, err = service.Store.Queries.UpdateBookmarkUrl(context.Background(), *nameDto)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			return fmt.Errorf("can not update bookmark url: %w", err)
+			response.Error = "can not update bookmark url: " + err.Error()
 		}
 	}
 
@@ -145,7 +147,7 @@ func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) e
 		_, err = service.Store.Queries.GetGroupById(context.Background(), updateBookmarkDTO.GroupID)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			return fmt.Errorf("can not find group: %w", err)
+			response.Error = "can not find group: " + err.Error()
 		}
 
 		groupDto := &orm.UpdateBookmarkGroupIdParams{
@@ -156,11 +158,15 @@ func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) e
 		updatedBookmark, err = service.Store.Queries.UpdateBookmarkGroupId(context.Background(), *groupDto)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			return fmt.Errorf("can not update bookmark url: %w", err)
+			response.Error = "can not update bookmark url: " + err.Error()
 		}
 	}
 
-	ReturnJson(FormatBookmark(updatedBookmark), w)
+	if response.Error == nil {
+		response.Data = FormatBookmark(updatedBookmark)
+	}
+
+	ReturnJson(response, w)
 
 	return nil
 }

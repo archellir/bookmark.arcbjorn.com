@@ -76,7 +76,7 @@ func (service *BookmarkService) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if createBookmarkDTO.Url == "" {
-		ReturnResponseWithError(w, response, ErrorTitleBookmarkNotUrl, err)
+		ReturnResponseWithError(w, response, ErrorTitleBookmarkNoUrl, err)
 		return
 	}
 

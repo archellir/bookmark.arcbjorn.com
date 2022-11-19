@@ -21,9 +21,12 @@ const (
 )
 
 const (
-	ErrorTitleGroup          string = "group: "
-	ErrorTitleGroupNotFound  string = "can not find group: "
-	ErrorTitleGroupsNotFound string = "can not find groups: "
+	ErrorTitleGroup                   string = "group: "
+	ErrorTitleGroupNotFound           string = "can not find group: "
+	ErrorTitleGroupsNotFound          string = "can not find groups: "
+	ErrorTitleGroupNotCreated         string = "can not create group: "
+	ErrorTitleGroupNoName             string = "can not get group url: "
+	ErrorTitleGroupCreateDtoNotParsed string = "can not parse createGroupDTO: "
 )
 
 const (
@@ -31,7 +34,7 @@ const (
 	ErrorTitleBookmarkNoId               string = "can not get bookmark ID: "
 	ErrorTitleBookmarkCreateDtoNotParsed string = "can not parse createBookmarkDTO: "
 	ErrorTitleBookmarkNotCreated         string = "can not create bookmark: "
-	ErrorTitleBookmarkNotUrl             string = "can not get bookmark url: "
+	ErrorTitleBookmarkNoUrl              string = "can not get bookmark url: "
 	ErrorTitleBookmarkNotFound           string = "can not find bookmark: "
 	ErrorTitleBookmarksNotFound          string = "can not find bookmarks: "
 	ErrorTitleBookmarkNotDeleted         string = "can not delete bookmark: "

@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const createBookmark = `-- name: CreateBookmark :one
@@ -166,6 +167,31 @@ func (q *Queries) SearchBookmarkByNameAndUrl(ctx context.Context, searchString s
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateBookmarkGroupId = `-- name: UpdateBookmarkGroupId :one
+UPDATE bookmarks
+SET group_id = $2
+WHERE id = $1
+RETURNING id, name, url, group_id, created_at
+`
+
+type UpdateBookmarkGroupIdParams struct {
+	ID      int32         `json:"id"`
+	GroupID sql.NullInt32 `json:"group_id"`
+}
+
+func (q *Queries) UpdateBookmarkGroupId(ctx context.Context, arg UpdateBookmarkGroupIdParams) (Bookmark, error) {
+	row := q.db.QueryRowContext(ctx, updateBookmarkGroupId, arg.ID, arg.GroupID)
+	var i Bookmark
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Url,
+		&i.GroupID,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const updateBookmarkName = `-- name: UpdateBookmarkName :one

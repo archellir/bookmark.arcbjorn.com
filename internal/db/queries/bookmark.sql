@@ -32,6 +32,12 @@ SET url = $2
 WHERE id = $1
 RETURNING *;
 
+-- name: UpdateBookmarkGroupId :one
+UPDATE bookmarks
+SET group_id = $2
+WHERE id = $1
+RETURNING *;
+
 -- name: SearchBookmarkByNameAndUrl :many
 SELECT * FROM bookmarks  
 WHERE

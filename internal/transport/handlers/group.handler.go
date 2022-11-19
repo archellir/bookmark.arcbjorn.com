@@ -24,40 +24,35 @@ func NewGroupHandler(store *orm.Store) *GroupHandler {
 
 func (handler *GroupHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
-	case "/groups/all":
-		if r.Method != "GET" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		handler.Service.List(w, r)
 
-	case "/groups/get":
-		if r.Method != "GET" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		handler.Service.GetOne(w, r)
+	case "/groups":
 
-	case "/groups/create":
-		if r.Method != "POST" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		handler.Service.Create(w, r)
+		switch r.Method {
 
-	case "/groups/update":
-		if r.Method != "PUT" && r.Method != "PATCH" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+		case "GET":
+			if r.URL.Query().Has(services.IdParam) {
+				handler.Service.GetOne(w, r)
+			} else {
+				handler.Service.List(w, r)
+			}
 			return
-		}
-		handler.Service.Update(w, r)
 
-	case "/groups/delete":
-		if r.Method != "DELETE" {
+		case "POST":
+			handler.Service.Create(w, r)
+			return
+
+		case "PUT":
+			handler.Service.Update(w, r)
+			return
+
+		case "DELETE":
+			handler.Service.Delete(w, r)
+			return
+
+		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		handler.Service.Delete(w, r)
 
 	default:
 		w.WriteHeader(http.StatusBadRequest)

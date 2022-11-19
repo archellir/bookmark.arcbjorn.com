@@ -24,40 +24,35 @@ func NewTagHandler(store *orm.Store) *TagHandler {
 
 func (handler *TagHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
-	case "/tags/all":
-		if r.Method != "GET" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		handler.Service.List(w, r)
 
-	case "/tags/get":
-		if r.Method != "GET" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		handler.Service.GetOne(w, r)
+	case "/tags":
 
-	case "/tags/create":
-		if r.Method != "POST" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		handler.Service.Create(w, r)
+		switch r.Method {
 
-	case "/tags/update":
-		if r.Method != "PUT" && r.Method != "PATCH" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+		case "GET":
+			if r.URL.Query().Has(services.IdParam) {
+				handler.Service.GetOne(w, r)
+			} else {
+				handler.Service.List(w, r)
+			}
 			return
-		}
-		handler.Service.Update(w, r)
 
-	case "/tags/delete":
-		if r.Method != "DELETE" {
+		case "POST":
+			handler.Service.Create(w, r)
+			return
+
+		case "PUT":
+			handler.Service.Update(w, r)
+			return
+
+		case "DELETE":
+			handler.Service.Delete(w, r)
+			return
+
+		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		handler.Service.Delete(w, r)
 
 	default:
 		w.WriteHeader(http.StatusBadRequest)

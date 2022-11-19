@@ -25,19 +25,35 @@ func NewBookmarkHandler(store *orm.Store) *BookmarkHandler {
 
 func (handler *BookmarkHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
-	case "/bm/all":
-		if r.Method != "GET" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		handler.Service.List(w, r)
 
-	case "/bm/get":
-		if r.Method != "GET" {
+	case "/bm":
+
+		switch r.Method {
+
+		case "GET":
+			if r.URL.Query().Has(services.IdParam) {
+				handler.Service.GetOne(w, r)
+			} else {
+				handler.Service.List(w, r)
+			}
+			return
+
+		case "POST":
+			handler.Service.Create(w, r)
+			return
+
+		case "PUT":
+			handler.Service.Update(w, r)
+			return
+
+		case "DELETE":
+			handler.Service.Delete(w, r)
+			return
+
+		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		handler.Service.GetOne(w, r)
 
 	case "/bm/search":
 		if r.Method != "GET" {
@@ -45,27 +61,7 @@ func (handler *BookmarkHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		handler.Service.SearchByNameAndUrl(w, r)
-
-	case "/bm/create":
-		if r.Method != "POST" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		handler.Service.Create(w, r)
-
-	case "/bm/update":
-		if r.Method != "PUT" && r.Method != "PATCH" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		handler.Service.Update(w, r)
-
-	case "/bm/delete":
-		if r.Method != "DELETE" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		handler.Service.Delete(w, r)
+		return
 
 	default:
 		w.WriteHeader(http.StatusBadRequest)

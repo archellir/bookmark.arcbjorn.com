@@ -1,14 +1,13 @@
 
 CREATE TABLE "bookmarks" (
   "id" int generated always as identity PRIMARY KEY,
-  "name" varchar NOT NULL,
-  "url" varchar NOT NULL,
+  "name" varchar UNIQUE NOT NULL,
+  "url" varchar UNIQUE NOT NULL,
   "group_id" int DEFAULT NULL,
   "created_at" timestamptz NOT NULL DEFAULT (now())
 );
 
 COMMENT ON COLUMN "bookmarks"."name" IS 'Title of the web page document';
-ALTER TABLE "bookmarks" ADD CONSTRAINT "unique_name_url" UNIQUE ("name", "url");
 
 CREATE TABLE "tags" (
   "id" int generated always as identity PRIMARY KEY,

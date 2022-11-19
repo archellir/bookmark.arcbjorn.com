@@ -64,7 +64,7 @@ func GetJson(r *http.Request, target interface{}) error {
 	return json.NewDecoder(r.Body).Decode(target)
 }
 
-func ReturnJson(data interface{}, w http.ResponseWriter) {
+func ReturnJson(w http.ResponseWriter, data interface{}) {
 	json, err := json.Marshal(data)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -101,5 +101,5 @@ func ReturnResponseWithError(w http.ResponseWriter, response *tResponse, errorTi
 	w.WriteHeader(http.StatusInternalServerError)
 	response.Error = errorTitle + err.Error()
 
-	ReturnJson(response, w)
+	ReturnJson(w, response)
 }

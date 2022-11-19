@@ -37,7 +37,7 @@ func (service *BookmarkService) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Data = FormatBookmarks(bookmarks)
-	ReturnJson(response, w)
+	ReturnJson(w, response)
 }
 
 func (service *BookmarkService) GetOne(w http.ResponseWriter, r *http.Request) {
@@ -59,7 +59,7 @@ func (service *BookmarkService) GetOne(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Data = FormatBookmark(bookmark)
-	ReturnJson(response, w)
+	ReturnJson(w, response)
 }
 
 func (service *BookmarkService) Create(w http.ResponseWriter, r *http.Request) {
@@ -80,7 +80,7 @@ func (service *BookmarkService) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Data = FormatBookmark(bookmark)
-	ReturnJson(response, w)
+	ReturnJson(w, response)
 }
 
 func (service *BookmarkService) SearchByNameAndUrl(w http.ResponseWriter, r *http.Request) {
@@ -99,7 +99,7 @@ func (service *BookmarkService) SearchByNameAndUrl(w http.ResponseWriter, r *htt
 	}
 
 	response.Data = FormatBookmarks(bookmarks)
-	ReturnJson(response, w)
+	ReturnJson(w, response)
 }
 
 func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) {
@@ -172,7 +172,7 @@ func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Data = FormatBookmark(bookmark)
-	ReturnJson(response, w)
+	ReturnJson(w, response)
 }
 
 func (service *BookmarkService) Delete(w http.ResponseWriter, r *http.Request) {
@@ -192,5 +192,5 @@ func (service *BookmarkService) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Data = true
-	ReturnJson(response, w)
+	ReturnJson(w, response)
 }

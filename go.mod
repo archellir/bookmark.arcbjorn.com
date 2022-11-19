@@ -21,5 +21,6 @@ require (
 	github.com/pkg/errors v0.8.0 // indirect
 	github.com/stretchr/testify v1.8.1
 	golang.org/x/crypto v0.0.0-20181025213731-e84da0312774 // indirect
-	golang.org/x/sys v0.0.0-20181026203630-95b1ffbd15a5 // indirect
+	golang.org/x/net v0.2.0
+	golang.org/x/sys v0.2.0 // indirect
 )

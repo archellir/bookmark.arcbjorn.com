@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	orm "github.com/archellir/bookmark.arcbjorn.com/internal/db/orm"
@@ -12,10 +11,13 @@ type BookmarkService struct {
 	Store *orm.Store
 }
 
-func (service *BookmarkService) List(w http.ResponseWriter, r *http.Request) error {
+func (service *BookmarkService) List(w http.ResponseWriter, r *http.Request) {
+	response := CreateResponse(nil, nil)
+	var err error
+
 	limit, offset, err := GetListParams(r.URL)
 	if err != nil {
-		return err
+		response.Error = err.Error()
 	}
 
 	args := &orm.ListBookmarksParams{
@@ -25,80 +27,76 @@ func (service *BookmarkService) List(w http.ResponseWriter, r *http.Request) err
 
 	bookmarks, err := service.Store.Queries.ListBookmarks(context.Background(), *args)
 	if err != nil {
-		return fmt.Errorf("can not retrieve bookmarks: %w", err)
+		response.Error = "can not retrieve bookmarks: " + err.Error()
 	}
 
 	if len(bookmarks) == 0 {
 		bookmarks = []orm.Bookmark{}
 	}
 
-	formattedBookmarks := FormatBookmarks(bookmarks)
-
-	err = ReturnJson(formattedBookmarks, w)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return err
+	if response.Error == nil {
+		response.Data = FormatBookmarks(bookmarks)
 	}
 
-	return nil
+	ReturnJson(response, w)
 }
 
 func (service *BookmarkService) GetOne(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("one bookmark"))
 }
 
-func (service *BookmarkService) Create(w http.ResponseWriter, r *http.Request) error {
+func (service *BookmarkService) Create(w http.ResponseWriter, r *http.Request) {
+	response := CreateResponse(nil, nil)
+	var err error
+
 	var createBookmarkDTO orm.CreateBookmarkParams
-	err := GetJson(r, &createBookmarkDTO)
+	err = GetJson(r, &createBookmarkDTO)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		return fmt.Errorf("can not parse createBookmarkDTO: %w", err)
+		response.Error = "can not parse createBookmarkDTO: " + err.Error()
 	}
 
-	result, err := service.Store.Queries.CreateBookmark(context.Background(), createBookmarkDTO)
+	bookmark, err := service.Store.Queries.CreateBookmark(context.Background(), createBookmarkDTO)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		return fmt.Errorf("can not create bookmark: %w", err)
+		response.Error = "can not create bookmark: " + err.Error()
 	}
 
-	err = ReturnJson(result, w)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return err
+	if response.Error == nil {
+		response.Data = FormatBookmark(bookmark)
 	}
 
-	return nil
+	ReturnJson(response, w)
 }
 
-func (service *BookmarkService) SearchByNameAndUrl(w http.ResponseWriter, r *http.Request) error {
+func (service *BookmarkService) SearchByNameAndUrl(w http.ResponseWriter, r *http.Request) {
+	response := CreateResponse(nil, nil)
+	var err error
+
 	searchString := r.URL.Query().Get(searchParam)
 	bookmarks := []orm.Bookmark{}
-	var err error
 
 	if searchString != "" {
 		bookmarks, err = service.Store.Queries.SearchBookmarkByNameAndUrl(context.Background(), "%"+searchString+"%")
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			return fmt.Errorf("can not create bookmark: %w", err)
+			response.Error = "can not find bookmarks: " + err.Error()
 		}
 	}
 
-	formattedBookmarks := FormatBookmarks(bookmarks)
-
-	err = ReturnJson(formattedBookmarks, w)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return err
+	if response.Error == nil {
+		response.Data = FormatBookmarks(bookmarks)
 	}
 
-	return nil
+	ReturnJson(response, w)
 }
 
-func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) error {
+func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) {
 	response := CreateResponse(nil, nil)
+	var err error
 
 	var updateBookmarkDTO tUpdateBookmarkParams
-	err := GetJson(r, &updateBookmarkDTO)
+	err = GetJson(r, &updateBookmarkDTO)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		response.Error = "can not parse updateBookmarkDTO: " + err.Error()
@@ -106,10 +104,10 @@ func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) e
 
 	if updateBookmarkDTO.ID == 0 {
 		w.WriteHeader(http.StatusNotFound)
-		return nil
+		response.Error = "can get bookmark ID: " + err.Error()
 	}
 
-	var updatedBookmark orm.Bookmark
+	var bookmark orm.Bookmark
 
 	_, err = service.Store.Queries.GetBookmarkById(context.Background(), updateBookmarkDTO.ID)
 	if err != nil {
@@ -123,7 +121,7 @@ func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) e
 			Name: updateBookmarkDTO.Name,
 		}
 
-		updatedBookmark, err = service.Store.Queries.UpdateBookmarkName(context.Background(), *nameDto)
+		bookmark, err = service.Store.Queries.UpdateBookmarkName(context.Background(), *nameDto)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			response.Error = "can not update bookmark name: " + err.Error()
@@ -136,7 +134,7 @@ func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) e
 			Url: updateBookmarkDTO.Url,
 		}
 
-		updatedBookmark, err = service.Store.Queries.UpdateBookmarkUrl(context.Background(), *nameDto)
+		bookmark, err = service.Store.Queries.UpdateBookmarkUrl(context.Background(), *nameDto)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			response.Error = "can not update bookmark url: " + err.Error()
@@ -155,20 +153,18 @@ func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) e
 			GroupID: *Int32ToSqlNullInt32(updateBookmarkDTO.GroupID),
 		}
 
-		updatedBookmark, err = service.Store.Queries.UpdateBookmarkGroupId(context.Background(), *groupDto)
+		bookmark, err = service.Store.Queries.UpdateBookmarkGroupId(context.Background(), *groupDto)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			response.Error = "can not update bookmark url: " + err.Error()
+			response.Error = "can not update bookmark group: " + err.Error()
 		}
 	}
 
 	if response.Error == nil {
-		response.Data = FormatBookmark(updatedBookmark)
+		response.Data = FormatBookmark(bookmark)
 	}
 
 	ReturnJson(response, w)
-
-	return nil
 }
 
 func (service *BookmarkService) Delete(w http.ResponseWriter, r *http.Request) {

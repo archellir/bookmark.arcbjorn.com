@@ -15,7 +15,7 @@ import (
 var retrySchedule = []time.Duration{
 	1 * time.Second,
 	3 * time.Second,
-	10 * time.Second,
+	5 * time.Second,
 }
 
 type LinkService struct{}

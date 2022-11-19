@@ -107,13 +107,21 @@ func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) e
 		return nil
 	}
 
+	var updatedBookmark orm.Bookmark
+
+	_, err = service.Store.Queries.GetBookmarkById(context.Background(), updateBookmarkDTO.ID)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return fmt.Errorf("can not find bookmark to update: %w", err)
+	}
+
 	if updateBookmarkDTO.Name != "" {
 		nameDto := &orm.UpdateBookmarkNameParams{
 			ID:   updateBookmarkDTO.ID,
 			Name: updateBookmarkDTO.Name,
 		}
 
-		_, err := service.Store.Queries.UpdateBookmarkName(context.Background(), *nameDto)
+		updatedBookmark, err = service.Store.Queries.UpdateBookmarkName(context.Background(), *nameDto)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return fmt.Errorf("can not update bookmark name: %w", err)
@@ -126,7 +134,7 @@ func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) e
 			Url: updateBookmarkDTO.Url,
 		}
 
-		_, err := service.Store.Queries.UpdateBookmarkUrl(context.Background(), *nameDto)
+		updatedBookmark, err = service.Store.Queries.UpdateBookmarkUrl(context.Background(), *nameDto)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return fmt.Errorf("can not update bookmark url: %w", err)
@@ -134,32 +142,25 @@ func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) e
 	}
 
 	if updateBookmarkDTO.GroupID != 0 {
-		urlDto := &orm.UpdateBookmarkUrlParams{
-			ID:  updateBookmarkDTO.ID,
-			Url: updateBookmarkDTO.Url,
-		}
-
-		_, err := service.Store.Queries.UpdateBookmarkUrl(context.Background(), *urlDto)
+		_, err = service.Store.Queries.GetGroupById(context.Background(), updateBookmarkDTO.GroupID)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			return fmt.Errorf("can not update bookmark url: %w", err)
+			return fmt.Errorf("can not find group: %w", err)
 		}
-	}
 
-	if updateBookmarkDTO.GroupID != 0 {
 		groupDto := &orm.UpdateBookmarkGroupIdParams{
 			ID:      updateBookmarkDTO.ID,
 			GroupID: *Int32ToSqlNullInt32(updateBookmarkDTO.GroupID),
 		}
 
-		_, err := service.Store.Queries.UpdateBookmarkGroupId(context.Background(), *groupDto)
+		updatedBookmark, err = service.Store.Queries.UpdateBookmarkGroupId(context.Background(), *groupDto)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return fmt.Errorf("can not update bookmark url: %w", err)
 		}
 	}
 
-	ReturnJson(updateBookmarkDTO, w)
+	ReturnJson(FormatBookmark(updatedBookmark), w)
 
 	return nil
 }

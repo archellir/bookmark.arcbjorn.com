@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -72,20 +73,40 @@ func (service *LinkService) getURLWithRetries(url string) (*http.Response, error
 	return resp, nil
 }
 
+func validateUrl(urlString string) (isValid bool) {
+	parsedUrl, err := url.Parse(urlString)
+	return err == nil && parsedUrl.Scheme != "" && parsedUrl.Host != ""
+}
+
 func (service *LinkService) ValidateLink(url string) (isValid bool, err error) {
+	isValid = validateUrl(url)
+	if !isValid {
+		return false, fmt.Errorf(ErrorTitleUrlNotStaticallyValid)
+	}
+
 	response, err := service.getURLWithRetries(url)
 	if err != nil {
-		return false, fmt.Errorf("can not validate url: " + err.Error())
+		return false, fmt.Errorf(ErrorTitleUrlNotValid + err.Error())
 	}
 	defer response.Body.Close()
 
 	return true, nil
 }
 
+// adds protocol prefix if not found
+// statically validates url
+// dynamically validates url
+// extracts document title as a name for bookmark
+
 func (service *LinkService) ProcessLink(url string) (isValid bool, title string, err error) {
+	isValid = validateUrl(url)
+	if !isValid {
+		return false, "", fmt.Errorf(ErrorTitleUrlNotStaticallyValid)
+	}
+
 	response, err := service.getURLWithRetries(url)
 	if err != nil {
-		return false, "", fmt.Errorf("can not validate url: " + err.Error())
+		return false, "", fmt.Errorf(ErrorTitleUrlNotValid + err.Error())
 	}
 	defer response.Body.Close()
 

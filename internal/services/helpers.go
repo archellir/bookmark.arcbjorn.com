@@ -34,6 +34,8 @@ const (
 	ErrorTitleBookmarkUrlNotUpdated      string = "can not update bookmark url: "
 	ErrorTitleBookmarkGroupIdNotUpdated  string = "can not update bookmark group: "
 	ErrorTitleGroupNotFound              string = "can not find group: "
+	ErrorTitleUrlNotStaticallyValid      string = "url is statically not valid"
+	ErrorTitleUrlNotValid                string = "can not validate url: "
 )
 
 func GetListParams(url *url.URL) (limit int32, offset int32, err error) {

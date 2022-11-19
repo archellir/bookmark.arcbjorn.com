@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -24,22 +23,22 @@ func (service *BookmarkService) List(w http.ResponseWriter, r *http.Request) err
 		Offset: offset,
 	}
 
-	result, err := service.Store.Queries.ListBookmarks(context.Background(), *args)
+	bookmarks, err := service.Store.Queries.ListBookmarks(context.Background(), *args)
 	if err != nil {
 		return fmt.Errorf("can not retrieve bookmarks: %w", err)
 	}
 
-	if len(result) == 0 {
-		result = []orm.Bookmark{}
+	if len(bookmarks) == 0 {
+		bookmarks = []orm.Bookmark{}
 	}
 
-	json, err := json.Marshal(result)
+	formattedBookmarks := FormatBookmarks(bookmarks)
+
+	err = ReturnJson(formattedBookmarks, w)
 	if err != nil {
-		return fmt.Errorf("can not generate json: %w", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(json)
 
 	return nil
 }

@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	idParam         = "id"
+	IdParam         = "id"
 	searchParam     = "search"
 	limitParamName  = "limit"
 	offsetParamName = "offset"
@@ -87,11 +87,11 @@ func CreateResponse(data interface{}, err interface{}) *tResponse {
 }
 
 func GetIdFromUrlQuery(url *url.URL) (id int32, err error) {
-	if !url.Query().Has(idParam) {
+	if !url.Query().Has(IdParam) {
 		return 0, fmt.Errorf("ID is not provided")
 	}
 
-	idStr := url.Query().Get(idParam)
+	idStr := url.Query().Get(IdParam)
 
 	idInt64, err := strconv.ParseInt(idStr, 10, 32)
 	if err != nil {

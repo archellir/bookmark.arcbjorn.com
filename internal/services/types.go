@@ -2,6 +2,11 @@ package services
 
 import "time"
 
+type tResponse struct {
+	Data  interface{} `json:"data"`
+	Error interface{} `json:"error"`
+}
+
 type tUpdateBookmarkParams struct {
 	ID      int32  `json:"id"`
 	Name    string `json:"name"`

@@ -59,3 +59,10 @@ func ReturnJson(data interface{}, w http.ResponseWriter) error {
 
 	return nil
 }
+
+func CreateResponse(data interface{}, err interface{}) *tResponse {
+	return &tResponse{
+		Data:  data,
+		Error: err,
+	}
+}

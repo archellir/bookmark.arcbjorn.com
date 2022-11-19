@@ -29,10 +29,10 @@ func FormatBookmark(bookmark orm.Bookmark) *tFormattedBookmark {
 }
 
 func FormatBookmarks(bookmarks []orm.Bookmark) []*tFormattedBookmark {
-	var formattedBookmarks []*tFormattedBookmark
+	formattedBookmarks := make([]*tFormattedBookmark, 0)
 
-	for idx, bookmark := range bookmarks {
-		formattedBookmarks[idx] = FormatBookmark(bookmark)
+	for _, bookmark := range bookmarks {
+		formattedBookmarks = append(formattedBookmarks, FormatBookmark(bookmark))
 	}
 
 	return formattedBookmarks

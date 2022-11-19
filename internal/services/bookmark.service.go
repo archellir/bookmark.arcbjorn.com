@@ -208,7 +208,15 @@ func (service *BookmarkService) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = service.Store.Queries.DeleteBookmark(context.Background(), int32(id))
+	idInt := int32(id)
+
+	_, err = service.Store.Queries.GetBookmarkById(context.Background(), idInt)
+	if err != nil {
+		ReturnResponseWithError(w, response, ErrorTitleBookmarkNotFound, err)
+		return
+	}
+
+	err = service.Store.Queries.DeleteBookmark(context.Background(), idInt)
 	if err != nil {
 		ReturnResponseWithError(w, response, ErrorTitleBookmarkNotDeleted, err)
 		return

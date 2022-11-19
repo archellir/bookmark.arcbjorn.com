@@ -56,24 +56,6 @@ func (q *Queries) DeleteBookmarks(ctx context.Context) error {
 	return err
 }
 
-const getBookmark = `-- name: GetBookmark :one
-SELECT id, name, url, group_id, created_at FROM bookmarks
-WHERE id = $1 LIMIT 1
-`
-
-func (q *Queries) GetBookmark(ctx context.Context, id int32) (Bookmark, error) {
-	row := q.db.QueryRowContext(ctx, getBookmark, id)
-	var i Bookmark
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Url,
-		&i.GroupID,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
 const getBookmarkById = `-- name: GetBookmarkById :one
 SELECT id, name, url, group_id, created_at FROM bookmarks
 WHERE id = $1 LIMIT 1

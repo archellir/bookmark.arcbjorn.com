@@ -10,10 +10,6 @@ INSERT INTO bookmarks (
 SELECT * FROM bookmarks
 WHERE id = $1 LIMIT 1;
 
--- name: GetBookmark :one
-SELECT * FROM bookmarks
-WHERE id = $1 LIMIT 1;
-
 -- name: ListBookmarks :many
 SELECT * FROM bookmarks
 ORDER BY id

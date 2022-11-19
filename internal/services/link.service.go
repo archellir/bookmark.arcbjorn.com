@@ -75,7 +75,7 @@ func (service *LinkService) getURLWithRetries(url string) (*http.Response, error
 }
 
 func validateUrl(urlString string) (isValid bool) {
-	parsedUrl, err := url.Parse(urlString)
+	parsedUrl, err := url.ParseRequestURI(urlString)
 	return err == nil && parsedUrl.Scheme != "" && parsedUrl.Host != ""
 }
 

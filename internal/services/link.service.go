@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"golang.org/x/net/html"
@@ -98,7 +99,12 @@ func (service *LinkService) ValidateLink(url string) (isValid bool, err error) {
 // dynamically validates url
 // extracts document title as a name for bookmark
 
-func (service *LinkService) ProcessLink(url string) (isValid bool, title string, err error) {
+func (service *LinkService) ProcessLink(urlString string) (isValid bool, title string, err error) {
+	url := urlString
+	if !strings.Contains(urlString, "https://") {
+		url = "https://" + url
+	}
+
 	isValid = validateUrl(url)
 	if !isValid {
 		return false, "", fmt.Errorf(ErrorTitleUrlNotStaticallyValid)

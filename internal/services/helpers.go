@@ -72,6 +72,7 @@ func ReturnJson(w http.ResponseWriter, data interface{}) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("can not generate json" + err.Error()))
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")

@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"net/http"
+	"strconv"
 
 	orm "github.com/archellir/bookmark.arcbjorn.com/internal/db/orm"
 )
@@ -42,7 +43,35 @@ func (service *BookmarkService) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (service *BookmarkService) GetOne(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("one bookmark"))
+	response := CreateResponse(nil, nil)
+	var err error
+
+	if !r.URL.Query().Has(idParam) {
+		w.WriteHeader(http.StatusInternalServerError)
+		response.Error = "bookmark ID is not provided"
+	}
+
+	idStr := r.URL.Query().Get(idParam)
+
+	id, err := strconv.ParseInt(idStr, 10, 32)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		response.Error = "bookmark ID is invalid: " + err.Error()
+	}
+
+	var bookmark orm.Bookmark
+
+	bookmark, err = service.Store.Queries.GetBookmarkById(context.Background(), int32(id))
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		response.Error = "can not find bookmark: " + err.Error()
+	}
+
+	if response.Error == nil {
+		response.Data = FormatBookmark(bookmark)
+	}
+
+	ReturnJson(response, w)
 }
 
 func (service *BookmarkService) Create(w http.ResponseWriter, r *http.Request) {

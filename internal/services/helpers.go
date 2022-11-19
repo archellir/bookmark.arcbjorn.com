@@ -9,9 +9,10 @@ import (
 )
 
 const (
+	idParam         = "id"
+	searchParam     = "search"
 	limitParamName  = "limit"
 	offsetParamName = "offset"
-	searchParam     = "search"
 )
 
 const (

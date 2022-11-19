@@ -4,9 +4,17 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"time"
 
 	"golang.org/x/net/html"
 )
+
+var retrySchedule = []time.Duration{
+	1 * time.Second,
+	3 * time.Second,
+	10 * time.Second,
+}
 
 type LinkService struct{}
 
@@ -40,8 +48,42 @@ func (service *LinkService) getHtmlTitle(r io.Reader) (isFound bool, title strin
 	return isFound, title, err
 }
 
+func (service *LinkService) getURLWithRetries(url string) (*http.Response, error) {
+	var err error
+	var resp *http.Response
+
+	for _, retryInterval := range retrySchedule {
+		resp, err = http.Get(url)
+
+		if err == nil {
+			break
+		}
+
+		fmt.Fprintf(os.Stderr, "Request error: %+v\n", err)
+		fmt.Fprintf(os.Stderr, "Retrying in %v\n", retryInterval)
+		time.Sleep(retryInterval)
+	}
+
+	// all retries failed
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (service *LinkService) ValidateLink(url string) (isValid bool, err error) {
+	response, err := service.getURLWithRetries(url)
+	if err != nil {
+		return false, fmt.Errorf("can not validate url: " + err.Error())
+	}
+	defer response.Body.Close()
+
+	return true, nil
+}
+
 func (service *LinkService) ProcessLink(url string) (isValid bool, title string, err error) {
-	response, err := http.Get(url)
+	response, err := service.getURLWithRetries(url)
 	if err != nil {
 		return false, "", fmt.Errorf("can not validate url: " + err.Error())
 	}

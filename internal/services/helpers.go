@@ -66,3 +66,18 @@ func CreateResponse(data interface{}, err interface{}) *tResponse {
 		Error: err,
 	}
 }
+
+func GetIdFromUrlQuery(url *url.URL) (id int32, err error) {
+	if !url.Query().Has(idParam) {
+		return 0, fmt.Errorf("ID is not provided")
+	}
+
+	idStr := url.Query().Get(idParam)
+
+	idInt64, err := strconv.ParseInt(idStr, 10, 32)
+	if err != nil {
+		return 0, fmt.Errorf("ID is not valid: " + err.Error())
+	}
+
+	return int32(idInt64), nil
+}

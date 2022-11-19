@@ -197,5 +197,27 @@ func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (service *BookmarkService) Delete(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("true"))
+	response := CreateResponse(nil, nil)
+	var err error
+
+	id, err := GetIdFromUrlQuery(r.URL)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		response.Error = err.Error()
+
+		ReturnJson(response, w)
+		return
+	}
+
+	err = service.Store.Queries.DeleteBookmark(context.Background(), int32(id))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		response.Error = "can not delete bookmark: " + err.Error()
+
+		ReturnJson(response, w)
+		return
+	}
+
+	response.Data = true
+	ReturnJson(response, w)
 }

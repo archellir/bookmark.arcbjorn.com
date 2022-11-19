@@ -41,11 +41,51 @@ func (service *GroupService) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (service *GroupService) GetOne(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("one group"))
+	response := CreateResponse(nil, nil)
+	var err error
+
+	id, err := GetIdFromUrlQuery(r.URL)
+	if err != nil {
+		ReturnResponseWithError(w, response, ErrorTitleGroup, err)
+		return
+	}
+
+	var group orm.Group
+
+	group, err = service.Store.Queries.GetGroupById(context.Background(), int32(id))
+	if err != nil {
+		ReturnResponseWithError(w, response, ErrorTitleGroupNotFound, err)
+		return
+	}
+
+	response.Data = group
+	ReturnJson(w, response)
 }
 
 func (service *GroupService) Create(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("created group"))
+	response := CreateResponse(nil, nil)
+	var err error
+
+	var createGroupDTO tCreateGroupDTO
+	err = GetJson(r, &createGroupDTO)
+	if err != nil {
+		ReturnResponseWithError(w, response, ErrorTitleGroupCreateDtoNotParsed, err)
+		return
+	}
+
+	if createGroupDTO.Name == "" {
+		ReturnResponseWithError(w, response, ErrorTitleGroupNoName, err)
+		return
+	}
+
+	group, err := service.Store.Queries.CreateGroup(context.Background(), createGroupDTO.Name)
+	if err != nil {
+		ReturnResponseWithError(w, response, ErrorTitleGroupNotCreated, err)
+		return
+	}
+
+	response.Data = group
+	ReturnJson(w, response)
 }
 
 func (service *GroupService) Update(w http.ResponseWriter, r *http.Request) {

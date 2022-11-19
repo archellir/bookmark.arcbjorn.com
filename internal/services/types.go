@@ -21,3 +21,7 @@ type tFormattedBookmark struct {
 	GroupID   int32     `json:"group_id"`
 	CreatedAt time.Time `json:"created_at"`
 }
+
+type tCreateGroupDTO struct {
+	Name string `json:"data"`
+}

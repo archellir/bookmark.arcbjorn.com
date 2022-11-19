@@ -48,16 +48,15 @@ func GetJson(r *http.Request, target interface{}) error {
 	return json.NewDecoder(r.Body).Decode(target)
 }
 
-func ReturnJson(data interface{}, w http.ResponseWriter) error {
+func ReturnJson(data interface{}, w http.ResponseWriter) {
 	json, err := json.Marshal(data)
 	if err != nil {
-		return fmt.Errorf("can not generate json: %w", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("can not generate json" + err.Error()))
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(json)
-
-	return nil
 }
 
 func CreateResponse(data interface{}, err interface{}) *tResponse {

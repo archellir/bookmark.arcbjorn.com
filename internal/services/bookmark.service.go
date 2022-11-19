@@ -94,8 +94,74 @@ func (service *BookmarkService) SearchByNameAndUrl(w http.ResponseWriter, r *htt
 	return nil
 }
 
-func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("updated bookmark"))
+func (service *BookmarkService) Update(w http.ResponseWriter, r *http.Request) error {
+	var updateBookmarkDTO tUpdateBookmarkParams
+	err := GetJson(r, &updateBookmarkDTO)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return fmt.Errorf("can not parse updateBookmarkDTO: %w", err)
+	}
+
+	if updateBookmarkDTO.ID == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return nil
+	}
+
+	if updateBookmarkDTO.Name != "" {
+		nameDto := &orm.UpdateBookmarkNameParams{
+			ID:   updateBookmarkDTO.ID,
+			Name: updateBookmarkDTO.Name,
+		}
+
+		_, err := service.Store.Queries.UpdateBookmarkName(context.Background(), *nameDto)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return fmt.Errorf("can not update bookmark name: %w", err)
+		}
+	}
+
+	if updateBookmarkDTO.Url != "" {
+		nameDto := &orm.UpdateBookmarkUrlParams{
+			ID:  updateBookmarkDTO.ID,
+			Url: updateBookmarkDTO.Url,
+		}
+
+		_, err := service.Store.Queries.UpdateBookmarkUrl(context.Background(), *nameDto)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return fmt.Errorf("can not update bookmark url: %w", err)
+		}
+	}
+
+	if updateBookmarkDTO.GroupID != 0 {
+		urlDto := &orm.UpdateBookmarkUrlParams{
+			ID:  updateBookmarkDTO.ID,
+			Url: updateBookmarkDTO.Url,
+		}
+
+		_, err := service.Store.Queries.UpdateBookmarkUrl(context.Background(), *urlDto)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return fmt.Errorf("can not update bookmark url: %w", err)
+		}
+	}
+
+	if updateBookmarkDTO.GroupID != 0 {
+		groupDto := &orm.UpdateBookmarkGroupIdParams{
+			ID:      updateBookmarkDTO.ID,
+			GroupID: *Int32ToSqlNullInt32(updateBookmarkDTO.GroupID),
+		}
+
+		_, err := service.Store.Queries.UpdateBookmarkGroupId(context.Background(), *groupDto)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return fmt.Errorf("can not update bookmark url: %w", err)
+		}
+	}
+
+	ReturnJson(updateBookmarkDTO, w)
+
+	return nil
 }
 
 func (service *BookmarkService) Delete(w http.ResponseWriter, r *http.Request) {

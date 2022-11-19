@@ -13,7 +13,8 @@ type BookmarkHandler struct {
 
 func NewBookmarkHandler(store *orm.Store) *BookmarkHandler {
 	bookmarkService := &services.BookmarkService{
-		Store: store,
+		Store:       store,
+		LinkService: &services.LinkService{},
 	}
 	bookmarkHandler := &BookmarkHandler{
 		Service: bookmarkService,

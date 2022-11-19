@@ -8,7 +8,8 @@ import (
 )
 
 type BookmarkService struct {
-	Store *orm.Store
+	Store       *orm.Store
+	LinkService *LinkService
 }
 
 func (service *BookmarkService) List(w http.ResponseWriter, r *http.Request) {

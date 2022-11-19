@@ -25,6 +25,7 @@ const (
 	ErrorTitleBookmarkNoId               string = "can not get bookmark ID: "
 	ErrorTitleBookmarkCreateDtoNotParsed string = "can not parse createBookmarkDTO: "
 	ErrorTitleBookmarkNotCreated         string = "can not create bookmark: "
+	ErrorTitleBookmarkNotUrl             string = "can not get bookmark url: "
 	ErrorTitleBookmarkNotFound           string = "can not find bookmark: "
 	ErrorTitleBookmarksNotFound          string = "can not find bookmarks: "
 	ErrorTitleBookmarkNotDeleted         string = "can not delete bookmark: "

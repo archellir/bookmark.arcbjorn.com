@@ -66,12 +66,34 @@ func (service *BookmarkService) GetOne(w http.ResponseWriter, r *http.Request) {
 func (service *BookmarkService) Create(w http.ResponseWriter, r *http.Request) {
 	response := CreateResponse(nil, nil)
 	var err error
+	var isValid bool
 
 	var createBookmarkDTO orm.CreateBookmarkParams
 	err = GetJson(r, &createBookmarkDTO)
 	if err != nil {
 		ReturnResponseWithError(w, response, ErrorTitleBookmarkCreateDtoNotParsed, err)
 		return
+	}
+
+	if createBookmarkDTO.Url == "" {
+		ReturnResponseWithError(w, response, ErrorTitleBookmarkNotUrl, err)
+		return
+	}
+
+	if createBookmarkDTO.Name == "" {
+		isValid, title, err := service.LinkService.ProcessLink(createBookmarkDTO.Url)
+		if !isValid {
+			ReturnResponseWithError(w, response, ErrorTitleBookmark, err)
+			return
+		}
+
+		createBookmarkDTO.Name = title
+	} else {
+		isValid, err = service.LinkService.ValidateLink(createBookmarkDTO.Url)
+		if !isValid {
+			ReturnResponseWithError(w, response, ErrorTitleBookmark, err)
+			return
+		}
 	}
 
 	bookmark, err := service.Store.Queries.CreateBookmark(context.Background(), createBookmarkDTO)

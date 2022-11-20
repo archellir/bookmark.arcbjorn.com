@@ -25,12 +25,24 @@ const (
 	ErrorTitleGroupNotFound           string = "can not find group: "
 	ErrorTitleGroupsNotFound          string = "can not find groups: "
 	ErrorTitleGroupNotCreated         string = "can not create group: "
-	ErrorTitleGroupNoName             string = "can not get group url: "
+	ErrorTitleGroupNoName             string = "can not get group name: "
 	ErrorTitleGroupNoId               string = "can not get group ID: "
 	ErrorTitleGroupCreateDtoNotParsed string = "can not parse createGroupDTO: "
 	ErrorTitleGroupNameNotUpdated     string = "can not update group name: "
 	ErrorTitleGroupUpdateDtoNotParsed string = "can not parse updateGroupDTO: "
 	ErrorTitleGroupNotDeleted         string = "can not delete group: "
+)
+
+const (
+	ErrorTitleUser                   string = "user: "
+	ErrorTitleUserNotFound           string = "can not find user: "
+	ErrorTitleUserNotCreated         string = "can not create user: "
+	ErrorTitleUserNoUsername         string = "can not get user username: "
+	ErrorTitleUserNoPassword         string = "can not get user password: "
+	ErrorTitleUserNoId               string = "can not get user ID: "
+	ErrorTitleUserDtoNotParsed       string = "can not parse userDTO: "
+	ErrorTitleUserPasswordNotUpdated string = "can not update user password: "
+	ErrorTitleUserNotDeleted         string = "can not delete user: "
 )
 
 const (

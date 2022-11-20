@@ -25,11 +25,11 @@ func NewGroupHandler(store *orm.Store) *GroupHandler {
 func (handler *GroupHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 
-	case "/groups":
+	case "/api/groups":
 
 		switch r.Method {
 
-		case "GET":
+		case http.MethodGet:
 			if r.URL.Query().Has(services.IdParam) {
 				handler.Service.GetOne(w, r)
 			} else {
@@ -37,15 +37,15 @@ func (handler *GroupHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 
-		case "POST":
+		case http.MethodPost:
 			handler.Service.Create(w, r)
 			return
 
-		case "PUT":
+		case http.MethodPut:
 			handler.Service.Update(w, r)
 			return
 
-		case "DELETE":
+		case http.MethodDelete:
 			handler.Service.Delete(w, r)
 			return
 

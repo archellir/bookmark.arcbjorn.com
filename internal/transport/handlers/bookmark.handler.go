@@ -26,11 +26,11 @@ func NewBookmarkHandler(store *orm.Store) *BookmarkHandler {
 func (handler *BookmarkHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 
-	case "/bm":
+	case "/api/bm":
 
 		switch r.Method {
 
-		case "GET":
+		case http.MethodGet:
 			if r.URL.Query().Has(services.IdParam) {
 				handler.Service.GetOne(w, r)
 			} else {
@@ -38,15 +38,15 @@ func (handler *BookmarkHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 
-		case "POST":
+		case http.MethodPost:
 			handler.Service.Create(w, r)
 			return
 
-		case "PUT":
+		case http.MethodPut:
 			handler.Service.Update(w, r)
 			return
 
-		case "DELETE":
+		case http.MethodDelete:
 			handler.Service.Delete(w, r)
 			return
 

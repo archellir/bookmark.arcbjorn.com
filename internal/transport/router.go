@@ -2,7 +2,7 @@ package transport
 
 import (
 	"net/http"
-	"regexp"
+	"strings"
 
 	"github.com/archellir/bookmark.arcbjorn.com/internal/auth"
 	"github.com/archellir/bookmark.arcbjorn.com/internal/utils"
@@ -18,12 +18,13 @@ type Router struct {
 	Users     handlers.UserHandler
 }
 
-var (
-	isHealthCheck = regexp.MustCompile(`^/$`)
-	isBookmark    = regexp.MustCompile(`^/bm`)
-	isTag         = regexp.MustCompile(`^/tags`)
-	isGroup       = regexp.MustCompile(`^/groups`)
-	isUser        = regexp.MustCompile(`^/usr`)
+const (
+	apiRoutePrefix    = "/api"
+	healthCheckPrefix = "/api/healthcheck"
+	bookmarkPrefix    = "/api/bm"
+	tagPrefix         = "/api/tags"
+	groupPrefix       = "/api/groups"
+	userPrefix        = "/api/usr"
 )
 
 func NewRouter(store *orm.Store, config *utils.Config, tokenMaker auth.IMaker) *Router {
@@ -39,16 +40,18 @@ func NewRouter(store *orm.Store, config *utils.Config, tokenMaker auth.IMaker) *
 
 func (router *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch {
-	case isHealthCheck.MatchString(r.URL.Path):
+	case r.URL.Path == healthCheckPrefix:
 		w.WriteHeader(http.StatusOK)
-	case isBookmark.MatchString(r.URL.Path):
+
+	case strings.HasPrefix(r.URL.Path, bookmarkPrefix):
 		router.Bookmarks.Handle(w, r)
-	case isTag.MatchString(r.URL.Path):
+	case strings.HasPrefix(r.URL.Path, tagPrefix):
 		router.Tags.Handle(w, r)
-	case isGroup.MatchString(r.URL.Path):
+	case strings.HasPrefix(r.URL.Path, groupPrefix):
 		router.Groups.Handle(w, r)
-	case isUser.MatchString(r.URL.Path):
+	case strings.HasPrefix(r.URL.Path, userPrefix):
 		router.Users.Handle(w, r)
+
 	default:
 		w.WriteHeader(http.StatusBadRequest)
 	}

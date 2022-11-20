@@ -26,19 +26,19 @@ func NewUserHandler(store *orm.Store, config *utils.Config, tokenMaker auth.IMak
 func (handler *UserHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 
-	case "/usr":
+	case "/api/usr":
 
 		switch r.Method {
 
-		case "POST":
+		case http.MethodPost:
 			handler.Service.Create(w, r)
 			return
 
-		case "PUT":
+		case http.MethodPut:
 			handler.Service.UpdatePassword(w, r)
 			return
 
-		case "DELETE":
+		case http.MethodDelete:
 			handler.Service.Delete(w, r)
 			return
 
@@ -48,6 +48,11 @@ func (handler *UserHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		}
 
 	case "/usr/login":
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
 		handler.Service.LoginUser(w, r)
 		return
 

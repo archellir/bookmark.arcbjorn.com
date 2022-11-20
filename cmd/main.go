@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	api "github.com/archellir/bookmark.arcbjorn.com/api"
+	"github.com/archellir/bookmark.arcbjorn.com/api"
 	"github.com/archellir/bookmark.arcbjorn.com/internal/utils"
 )
 

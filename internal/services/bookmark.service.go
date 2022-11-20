@@ -14,23 +14,37 @@ type BookmarkService struct {
 
 func (service *BookmarkService) List(w http.ResponseWriter, r *http.Request) {
 	response := CreateResponse(nil, nil)
+	var bookmarks []orm.Bookmark
 	var err error
 
-	limit, offset, err := GetListParams(r.URL)
+	limit, offset, searchString, err := GetListParams(r.URL)
 	if err != nil {
 		ReturnResponseWithError(w, response, ErrorTitleBookmark, err)
 		return
 	}
 
-	args := &orm.ListBookmarksParams{
-		Limit:  limit,
-		Offset: offset,
-	}
+	if searchString != "" {
+		args := &orm.SearchBookmarkByNameAndUrlParams{
+			Limit:        limit,
+			Offset:       offset,
+			SearchString: "%" + searchString + "%",
+		}
 
-	bookmarks, err := service.Store.Queries.ListBookmarks(context.Background(), *args)
-	if err != nil {
-		ReturnResponseWithError(w, response, ErrorTitleBookmarksNotFound, err)
-		return
+		bookmarks, err = service.Store.Queries.SearchBookmarkByNameAndUrl(context.Background(), *args)
+		if err != nil {
+			ReturnResponseWithError(w, response, ErrorTitleBookmarksNotFound, err)
+			return
+		}
+	} else {
+		args := &orm.ListBookmarksParams{
+			Limit:  limit,
+			Offset: offset,
+		}
+		bookmarks, err = service.Store.Queries.ListBookmarks(context.Background(), *args)
+		if err != nil {
+			ReturnResponseWithError(w, response, ErrorTitleBookmarksNotFound, err)
+			return
+		}
 	}
 
 	if len(bookmarks) == 0 {
@@ -103,25 +117,6 @@ func (service *BookmarkService) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Data = FormatBookmark(bookmark)
-	ReturnJson(w, response)
-}
-
-func (service *BookmarkService) SearchByNameAndUrl(w http.ResponseWriter, r *http.Request) {
-	response := CreateResponse(nil, nil)
-	var err error
-
-	searchString := r.URL.Query().Get(searchParam)
-	bookmarks := []orm.Bookmark{}
-
-	if searchString != "" {
-		bookmarks, err = service.Store.Queries.SearchBookmarkByNameAndUrl(context.Background(), "%"+searchString+"%")
-		if err != nil {
-			ReturnResponseWithError(w, response, ErrorTitleBookmarksNotFound, err)
-			return
-		}
-	}
-
-	response.Data = FormatBookmarks(bookmarks)
 	ReturnJson(w, response)
 }
 

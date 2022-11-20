@@ -7,11 +7,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-const (
-	dbDriver = "postgres"
-	dbSource = "postgresql://root:root@localhost:5435/arc_bookmark?sslmode=disable"
-)
-
 type Store struct {
 	Queries *Queries
 }
@@ -22,7 +17,7 @@ func NewStore(db *sql.DB) *Store {
 	}
 }
 
-func InitStore() *Store {
+func InitStore(dbDriver string, dbSource string) *Store {
 	db, dbErr := sql.Open(dbDriver, dbSource)
 
 	if dbErr != nil {

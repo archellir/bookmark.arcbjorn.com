@@ -14,8 +14,8 @@ type Server struct {
 	tokenMaker auth.IMaker
 }
 
-func NewServer() (*Server, error) {
-	store := orm.InitStore()
+func NewServer(dbDriver string, dbSource string) (*Server, error) {
+	store := orm.InitStore(dbDriver, dbSource)
 	router := transport.NewRouter(store)
 
 	tokenMaker, err := auth.NewPasetoMaker("12345678901234567890123456789012")
@@ -31,8 +31,8 @@ func NewServer() (*Server, error) {
 	return server, nil
 }
 
-func (server *Server) Start() {
+func (server *Server) Start(serverAddress string) {
 	// addr := fmt.Sprint("localhost:", os.Getenv("SERVER_PORT"))
 
-	http.ListenAndServe("localhost:8080", server.Router)
+	http.ListenAndServe(serverAddress, server.Router)
 }

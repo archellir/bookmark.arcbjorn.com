@@ -1,3 +1,4 @@
 internal/db/data
 
 .env
+dev.env

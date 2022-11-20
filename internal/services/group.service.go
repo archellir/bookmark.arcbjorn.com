@@ -13,23 +13,37 @@ type GroupService struct {
 
 func (service *GroupService) List(w http.ResponseWriter, r *http.Request) {
 	response := CreateResponse(nil, nil)
+	var groups []orm.Group
 	var err error
 
-	limit, offset, err := GetListParams(r.URL)
+	limit, offset, searchString, err := GetListParams(r.URL)
 	if err != nil {
 		ReturnResponseWithError(w, response, ErrorTitleGroup, err)
 		return
 	}
 
-	args := &orm.ListGroupsParams{
-		Limit:  limit,
-		Offset: offset,
-	}
+	if searchString != "" {
+		args := &orm.SearchGroupByNameParams{
+			Limit:        limit,
+			Offset:       offset,
+			SearchString: "%" + searchString + "%",
+		}
 
-	groups, err := service.Store.Queries.ListGroups(context.Background(), *args)
-	if err != nil {
-		ReturnResponseWithError(w, response, ErrorTitleGroupsNotFound, err)
-		return
+		groups, err = service.Store.Queries.SearchGroupByName(context.Background(), *args)
+		if err != nil {
+			ReturnResponseWithError(w, response, ErrorTitleGroupsNotFound, err)
+			return
+		}
+	} else {
+		args := &orm.ListGroupsParams{
+			Limit:  limit,
+			Offset: offset,
+		}
+		groups, err = service.Store.Queries.ListGroups(context.Background(), *args)
+		if err != nil {
+			ReturnResponseWithError(w, response, ErrorTitleGroupsNotFound, err)
+			return
+		}
 	}
 
 	if len(groups) == 0 {

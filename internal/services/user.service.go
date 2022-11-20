@@ -139,3 +139,60 @@ func (service *UserService) Delete(w http.ResponseWriter, r *http.Request) {
 	response.Data = true
 	ReturnJson(w, response)
 }
+
+func (service *UserService) LoginUser(w http.ResponseWriter, r *http.Request) {
+	response := CreateResponse(nil, nil)
+	var err error
+
+	var userDto tUserDTO
+	err = GetJson(r, &userDto)
+	if err != nil {
+		ReturnResponseWithError(w, response, ErrorTitleUserDtoNotParsed, err)
+		return
+	}
+
+	if userDto.Username == "" {
+		ReturnResponseWithError(w, response, ErrorTitleUserNoUsername, err)
+		return
+	}
+
+	if userDto.Password == "" {
+		ReturnResponseWithError(w, response, ErrorTitleUserNoPassword, err)
+		return
+	}
+
+	user, err := service.store.Queries.GetUserByUsername(context.Background(), userDto.Username)
+	if err != nil {
+		ReturnResponseWithError(w, response, ErrorTitleUserNotFound, err)
+		return
+	}
+
+	err = service.store.Queries.DeleteUser(context.Background(), userDto.Username)
+	if err != nil {
+		ReturnResponseWithError(w, response, ErrorTitleUserNotDeleted, err)
+		return
+	}
+
+	err = utils.CheckPassword(userDto.Password, user.HashedPassword)
+	if err != nil {
+		ReturnResponseWithError(w, response, ErrorTitleUserWrongPassword, err)
+		return
+	}
+
+	accessToken, err := service.tokenMaker.CreateToken(
+		user.Username,
+		service.config.AccessTokenDuration,
+	)
+	if err != nil {
+		ReturnResponseWithError(w, response, ErrorTitleUserAccessTokenNotMade, err)
+		return
+	}
+
+	loginData := tLoginUserResponse{
+		AccessToken: accessToken,
+		User:        user.Username,
+	}
+
+	response.Data = loginData
+	ReturnJson(w, response)
+}

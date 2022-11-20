@@ -43,6 +43,8 @@ const (
 	ErrorTitleUserDtoNotParsed       string = "can not parse userDTO: "
 	ErrorTitleUserPasswordNotUpdated string = "can not update user password: "
 	ErrorTitleUserNotDeleted         string = "can not delete user: "
+	ErrorTitleUserWrongPassword      string = "wrong password: "
+	ErrorTitleUserAccessTokenNotMade string = "can not generate access token: "
 )
 
 const (

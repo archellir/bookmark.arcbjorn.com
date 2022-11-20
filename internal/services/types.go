@@ -35,3 +35,8 @@ type tUserDTO struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
+
+type tLoginUserResponse struct {
+	AccessToken string `json:"access_token"`
+	User        string `json:"username"`
+}

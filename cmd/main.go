@@ -13,10 +13,10 @@ func main() {
 		log.Fatal("can not load config: ", err)
 	}
 
-	server, err := api.NewServer(config.DatabaseDriver, config.DatabaseSource)
+	server, err := api.NewServer(config)
 	if err != nil {
 		log.Fatal("cannot create server", err)
 	}
 
-	server.Start(config.ServerAddress)
+	server.Start()
 }

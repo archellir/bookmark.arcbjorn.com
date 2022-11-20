@@ -12,14 +12,14 @@ type UserHandler struct {
 }
 
 func NewUserHandler(store *orm.Store) *UserHandler {
-	tagService := &services.UserService{
+	userService := &services.UserService{
 		Store: store,
 	}
-	tagHandler := &UserHandler{
-		Service: tagService,
+	userHandler := &UserHandler{
+		Service: userService,
 	}
 
-	return tagHandler
+	return userHandler
 }
 
 func (handler *UserHandler) Handle(w http.ResponseWriter, r *http.Request) {

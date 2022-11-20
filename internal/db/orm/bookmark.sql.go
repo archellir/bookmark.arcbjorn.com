@@ -118,12 +118,21 @@ func (q *Queries) ListBookmarks(ctx context.Context, arg ListBookmarksParams) ([
 const searchBookmarkByNameAndUrl = `-- name: SearchBookmarkByNameAndUrl :many
 SELECT id, name, url, group_id, created_at FROM bookmarks  
 WHERE
-  url ILIKE $1::text OR
-  name ILIKE $1::text
+  url ILIKE $3::text OR
+  name ILIKE $3::text
+ORDER BY id
+LIMIT $1
+OFFSET $2
 `
 
-func (q *Queries) SearchBookmarkByNameAndUrl(ctx context.Context, searchString string) ([]Bookmark, error) {
-	rows, err := q.db.QueryContext(ctx, searchBookmarkByNameAndUrl, searchString)
+type SearchBookmarkByNameAndUrlParams struct {
+	Limit        int32  `json:"limit"`
+	Offset       int32  `json:"offset"`
+	SearchString string `json:"search_string"`
+}
+
+func (q *Queries) SearchBookmarkByNameAndUrl(ctx context.Context, arg SearchBookmarkByNameAndUrlParams) ([]Bookmark, error) {
+	rows, err := q.db.QueryContext(ctx, searchBookmarkByNameAndUrl, arg.Limit, arg.Offset, arg.SearchString)
 	if err != nil {
 		return nil, err
 	}

@@ -38,7 +38,10 @@ RETURNING *;
 SELECT * FROM bookmarks  
 WHERE
   url ILIKE sqlc.arg(search_string)::text OR
-  name ILIKE sqlc.arg(search_string)::text;
+  name ILIKE sqlc.arg(search_string)::text
+ORDER BY id
+LIMIT $1
+OFFSET $2;
 
 -- name: DeleteBookmark :exec
 DELETE FROM bookmarks

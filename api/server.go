@@ -13,9 +13,8 @@ import (
 )
 
 type Server struct {
-	config     *utils.Config
-	Router     *transport.Router
-	tokenMaker auth.IMaker
+	config *utils.Config
+	Router *transport.Router
 }
 
 func NewServer(config *utils.Config) (*Server, error) {
@@ -29,9 +28,8 @@ func NewServer(config *utils.Config) (*Server, error) {
 	router := transport.NewRouter(store, config, tokenMaker)
 
 	server := &Server{
-		config:     config,
-		Router:     router,
-		tokenMaker: tokenMaker,
+		config: config,
+		Router: router,
 	}
 
 	return server, nil

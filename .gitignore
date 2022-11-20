@@ -2,3 +2,4 @@ internal/db/data
 
 .env
 dev.env
+test.env

@@ -55,14 +55,6 @@ func (handler *BookmarkHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-	case "/bm/search":
-		if r.Method != "GET" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		handler.Service.SearchByNameAndUrl(w, r)
-		return
-
 	default:
 		w.WriteHeader(http.StatusBadRequest)
 	}

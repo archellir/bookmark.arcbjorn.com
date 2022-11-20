@@ -30,6 +30,7 @@ const (
 	ErrorTitleGroupCreateDtoNotParsed string = "can not parse createGroupDTO: "
 	ErrorTitleGroupNameNotUpdated     string = "can not update group name: "
 	ErrorTitleGroupUpdateDtoNotParsed string = "can not parse updateGroupDTO: "
+	ErrorTitleGroupNotDeleted         string = "can not delete group: "
 )
 
 const (

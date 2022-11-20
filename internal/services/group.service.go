@@ -130,5 +130,29 @@ func (service *GroupService) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (service *GroupService) Delete(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("true"))
+	response := CreateResponse(nil, nil)
+	var err error
+
+	id, err := GetIdFromUrlQuery(r.URL)
+	if err != nil {
+		ReturnResponseWithError(w, response, ErrorTitleGroup, err)
+		return
+	}
+
+	idInt := int32(id)
+
+	_, err = service.Store.Queries.GetGroupById(context.Background(), idInt)
+	if err != nil {
+		ReturnResponseWithError(w, response, ErrorTitleGroupNotFound, err)
+		return
+	}
+
+	err = service.Store.Queries.DeleteGroup(context.Background(), idInt)
+	if err != nil {
+		ReturnResponseWithError(w, response, ErrorTitleGroupNotDeleted, err)
+		return
+	}
+
+	response.Data = true
+	ReturnJson(w, response)
 }

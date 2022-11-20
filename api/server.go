@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	auth "github.com/archellir/bookmark.arcbjorn.com/internal/auth"
@@ -34,5 +35,6 @@ func NewServer(dbDriver string, dbSource string) (*Server, error) {
 func (server *Server) Start(serverAddress string) {
 	// addr := fmt.Sprint("localhost:", os.Getenv("SERVER_PORT"))
 
-	http.ListenAndServe(serverAddress, server.Router)
+	log.Println("Listening and serving HTTP on", serverAddress)
+	log.Fatal(http.ListenAndServe(serverAddress, server.Router))
 }

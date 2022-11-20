@@ -167,12 +167,6 @@ func (service *UserService) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = service.store.Queries.DeleteUser(context.Background(), userDto.Username)
-	if err != nil {
-		ReturnResponseWithError(w, response, ErrorTitleUserNotDeleted, err)
-		return
-	}
-
 	err = utils.CheckPassword(userDto.Password, user.HashedPassword)
 	if err != nil {
 		ReturnResponseWithError(w, response, ErrorTitleUserWrongPassword, err)

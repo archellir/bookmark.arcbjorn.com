@@ -24,7 +24,10 @@ RETURNING *;
 -- name: SearchGroupByName :many
 SELECT * FROM groups  
 WHERE
-  name ILIKE sqlc.arg(search_string)::text;
+  name ILIKE sqlc.arg(search_string)::text
+ORDER BY id
+LIMIT $1
+OFFSET $2;
 
 -- name: DeleteGroup :exec
 DELETE FROM groups

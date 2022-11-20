@@ -93,11 +93,20 @@ func (q *Queries) ListGroups(ctx context.Context, arg ListGroupsParams) ([]Group
 const searchGroupByName = `-- name: SearchGroupByName :many
 SELECT id, name, created_at FROM groups  
 WHERE
-  name ILIKE $1::text
+  name ILIKE $3::text
+ORDER BY id
+LIMIT $1
+OFFSET $2
 `
 
-func (q *Queries) SearchGroupByName(ctx context.Context, searchString string) ([]Group, error) {
-	rows, err := q.db.QueryContext(ctx, searchGroupByName, searchString)
+type SearchGroupByNameParams struct {
+	Limit        int32  `json:"limit"`
+	Offset       int32  `json:"offset"`
+	SearchString string `json:"search_string"`
+}
+
+func (q *Queries) SearchGroupByName(ctx context.Context, arg SearchGroupByNameParams) ([]Group, error) {
+	rows, err := q.db.QueryContext(ctx, searchGroupByName, arg.Limit, arg.Offset, arg.SearchString)
 	if err != nil {
 		return nil, err
 	}

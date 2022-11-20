@@ -112,6 +112,12 @@ func (service *UserService) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_, err = service.Store.Queries.GetUserByUsername(context.Background(), userDto.Username)
+	if err != nil {
+		ReturnResponseWithError(w, response, ErrorTitleUserNotFound, err)
+		return
+	}
+
 	err = service.Store.Queries.DeleteUser(context.Background(), userDto.Username)
 	if err != nil {
 		ReturnResponseWithError(w, response, ErrorTitleUserNotDeleted, err)

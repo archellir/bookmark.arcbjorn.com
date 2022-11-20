@@ -50,15 +50,16 @@ const (
 	ErrorTitleUrlNotValid                string = "can not validate url: "
 )
 
-func GetListParams(url *url.URL) (limit int32, offset int32, err error) {
+func GetListParams(url *url.URL) (limit int32, offset int32, searchString string, err error) {
 	limit = defaultLimit
 	offset = defaultOffset
+	searchString = ""
 
 	if url.Query().Has(limitParamName) {
 		limitParam := url.Query().Get(limitParamName)
 		parsedInt, err := strconv.Atoi(limitParam)
 		if err != nil {
-			return 0, 0, fmt.Errorf("error parsing list limit")
+			return 0, 0, "", fmt.Errorf("error parsing list limit")
 		}
 		limit = int32(parsedInt)
 	}
@@ -67,12 +68,16 @@ func GetListParams(url *url.URL) (limit int32, offset int32, err error) {
 		offsetParam := url.Query().Get(offsetParamName)
 		parsedInt, err := strconv.Atoi(offsetParam)
 		if err != nil {
-			return 0, 0, fmt.Errorf("error parsing list offset")
+			return 0, 0, "", fmt.Errorf("error parsing list offset")
 		}
 		offset = int32(parsedInt)
 	}
 
-	return limit, offset, nil
+	if url.Query().Has(searchParam) {
+		searchString = url.Query().Get(searchParam)
+	}
+
+	return limit, offset, searchString, nil
 }
 
 func GetJson(r *http.Request, target interface{}) error {

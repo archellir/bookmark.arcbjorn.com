@@ -34,7 +34,7 @@ ALTER TABLE "bookmarks" ADD FOREIGN KEY ("group_id") REFERENCES "groups" ("id") 
 
 CREATE TABLE "users" (
   "id" int generated always as identity PRIMARY KEY,
-  "username" varchar,
+  "username" varchar NOT NULL,
   "hashed_password" varchar NOT NULL,
   "created_at" timestamptz NOT NULL DEFAULT (now())
 );

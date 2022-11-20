@@ -47,6 +47,10 @@ func (handler *UserHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+	case "/usr/login":
+		handler.Service.LoginUser(w, r)
+		return
+
 	default:
 		w.WriteHeader(http.StatusBadRequest)
 	}

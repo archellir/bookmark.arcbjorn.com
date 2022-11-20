@@ -33,8 +33,6 @@ func NewServer(dbDriver string, dbSource string) (*Server, error) {
 }
 
 func (server *Server) Start(serverAddress string) {
-	// addr := fmt.Sprint("localhost:", os.Getenv("SERVER_PORT"))
-
 	log.Println("Listening and serving HTTP on", serverAddress)
 	log.Fatal(http.ListenAndServe(serverAddress, server.Router))
 }

@@ -1,11 +1,13 @@
 package transport
 
 import (
+	"io/fs"
 	"net/http"
 	"strings"
 
 	"github.com/archellir/bookmark.arcbjorn.com/internal/auth"
 	"github.com/archellir/bookmark.arcbjorn.com/internal/utils"
+	"github.com/archellir/bookmark.arcbjorn.com/web"
 
 	orm "github.com/archellir/bookmark.arcbjorn.com/internal/db/orm"
 	handlers "github.com/archellir/bookmark.arcbjorn.com/internal/transport/handlers"
@@ -30,12 +32,15 @@ const (
 )
 
 func NewRouter(store *orm.Store, config *utils.Config, tokenMaker auth.IMaker) *Router {
+	distSubfolder, _ := fs.Sub(web.EmbededFilesystem, "dist")
+	httpFileSystemHandler := http.FileServer(http.FS(distSubfolder))
+
 	router := &Router{
 		Bookmarks: *handlers.NewBookmarkHandler(store),
 		Tags:      *handlers.NewTagHandler(store),
 		Groups:    *handlers.NewGroupHandler(store),
 		Users:     *handlers.NewUserHandler(store, config, tokenMaker),
-		Web:       *handlers.NewWebHandler(),
+		Web:       *handlers.NewWebHandler(httpFileSystemHandler),
 	}
 
 	return router

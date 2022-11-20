@@ -2,22 +2,23 @@ package transport
 
 import (
 	"fmt"
-	"io/fs"
 	"net/http"
 
 	"github.com/archellir/bookmark.arcbjorn.com/web"
 )
 
-type WebHandler struct{}
+type WebHandler struct {
+	staticFilesHandler http.Handler
+}
 
-func NewWebHandler() *WebHandler {
-	return &WebHandler{}
+func NewWebHandler(staticFilesHandler http.Handler) *WebHandler {
+	return &WebHandler{
+		staticFilesHandler: staticFilesHandler,
+	}
 }
 
 func (handler *WebHandler) HandleStaticFiles(w http.ResponseWriter, r *http.Request) {
-	distSubfolder, _ := fs.Sub(web.EmbededFilesystem, "dist")
-	httpFileSystem := http.FileServer(http.FS(distSubfolder))
-	httpFileSystem.ServeHTTP(w, r)
+	handler.staticFilesHandler.ServeHTTP(w, r)
 }
 
 func (handler *WebHandler) Handle(w http.ResponseWriter, r *http.Request) {

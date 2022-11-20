@@ -4,12 +4,24 @@ import (
 	"context"
 	"net/http"
 
-	orm "github.com/archellir/bookmark.arcbjorn.com/internal/db/orm"
+	"github.com/archellir/bookmark.arcbjorn.com/internal/auth"
 	"github.com/archellir/bookmark.arcbjorn.com/internal/utils"
+
+	orm "github.com/archellir/bookmark.arcbjorn.com/internal/db/orm"
 )
 
 type UserService struct {
-	Store *orm.Store
+	store      *orm.Store
+	config     *utils.Config
+	tokenMaker auth.IMaker
+}
+
+func NewUserService(store *orm.Store, config *utils.Config, tokenMaker auth.IMaker) *UserService {
+	return &UserService{
+		store:      store,
+		config:     config,
+		tokenMaker: tokenMaker,
+	}
 }
 
 func (service *UserService) Create(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +56,7 @@ func (service *UserService) Create(w http.ResponseWriter, r *http.Request) {
 		HashedPassword: hashedPassword,
 	}
 
-	user, err := service.Store.Queries.CreateUser(context.Background(), *createUserParams)
+	user, err := service.store.Queries.CreateUser(context.Background(), *createUserParams)
 	if err != nil {
 		ReturnResponseWithError(w, response, ErrorTitleUserNotCreated, err)
 		return
@@ -86,7 +98,7 @@ func (service *UserService) UpdatePassword(w http.ResponseWriter, r *http.Reques
 		HashedPassword: hashedPassword,
 	}
 
-	user, err := service.Store.Queries.UpdateUserPassword(context.Background(), *args)
+	user, err := service.store.Queries.UpdateUserPassword(context.Background(), *args)
 	if err != nil {
 		ReturnResponseWithError(w, response, ErrorTitleUserPasswordNotUpdated, err)
 		return
@@ -112,13 +124,13 @@ func (service *UserService) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = service.Store.Queries.GetUserByUsername(context.Background(), userDto.Username)
+	_, err = service.store.Queries.GetUserByUsername(context.Background(), userDto.Username)
 	if err != nil {
 		ReturnResponseWithError(w, response, ErrorTitleUserNotFound, err)
 		return
 	}
 
-	err = service.Store.Queries.DeleteUser(context.Background(), userDto.Username)
+	err = service.store.Queries.DeleteUser(context.Background(), userDto.Username)
 	if err != nil {
 		ReturnResponseWithError(w, response, ErrorTitleUserNotDeleted, err)
 		return

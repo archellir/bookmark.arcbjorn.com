@@ -5,26 +5,28 @@ import (
 	"log"
 	"net/http"
 
-	auth "github.com/archellir/bookmark.arcbjorn.com/internal/auth"
-	orm "github.com/archellir/bookmark.arcbjorn.com/internal/db/orm"
-	transport "github.com/archellir/bookmark.arcbjorn.com/internal/transport"
+	"github.com/archellir/bookmark.arcbjorn.com/internal/auth"
+	"github.com/archellir/bookmark.arcbjorn.com/internal/transport"
 	"github.com/archellir/bookmark.arcbjorn.com/internal/utils"
+
+	orm "github.com/archellir/bookmark.arcbjorn.com/internal/db/orm"
 )
 
 type Server struct {
-	config     utils.Config
+	config     *utils.Config
 	Router     *transport.Router
 	tokenMaker auth.IMaker
 }
 
-func NewServer(config utils.Config) (*Server, error) {
+func NewServer(config *utils.Config) (*Server, error) {
 	store := orm.InitStore(config.DatabaseDriver, config.DatabaseSource)
-	router := transport.NewRouter(store)
 
 	tokenMaker, err := auth.NewPasetoMaker(config.TokenSymmetricKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create token maker: %w", err)
 	}
+
+	router := transport.NewRouter(store, config, tokenMaker)
 
 	server := &Server{
 		config:     config,

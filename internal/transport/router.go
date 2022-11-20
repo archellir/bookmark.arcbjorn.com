@@ -4,6 +4,9 @@ import (
 	"net/http"
 	"regexp"
 
+	"github.com/archellir/bookmark.arcbjorn.com/internal/auth"
+	"github.com/archellir/bookmark.arcbjorn.com/internal/utils"
+
 	orm "github.com/archellir/bookmark.arcbjorn.com/internal/db/orm"
 	handlers "github.com/archellir/bookmark.arcbjorn.com/internal/transport/handlers"
 )
@@ -23,12 +26,12 @@ var (
 	isUser        = regexp.MustCompile(`^/usr`)
 )
 
-func NewRouter(store *orm.Store) *Router {
+func NewRouter(store *orm.Store, config *utils.Config, tokenMaker auth.IMaker) *Router {
 	router := &Router{
 		Bookmarks: *handlers.NewBookmarkHandler(store),
 		Tags:      *handlers.NewTagHandler(store),
 		Groups:    *handlers.NewGroupHandler(store),
-		Users:     *handlers.NewUserHandler(store),
+		Users:     *handlers.NewUserHandler(store, config, tokenMaker),
 	}
 
 	return router

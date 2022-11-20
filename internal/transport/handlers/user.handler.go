@@ -3,18 +3,19 @@ package transport
 import (
 	"net/http"
 
+	"github.com/archellir/bookmark.arcbjorn.com/internal/auth"
+	"github.com/archellir/bookmark.arcbjorn.com/internal/services"
+	"github.com/archellir/bookmark.arcbjorn.com/internal/utils"
+
 	orm "github.com/archellir/bookmark.arcbjorn.com/internal/db/orm"
-	services "github.com/archellir/bookmark.arcbjorn.com/internal/services"
 )
 
 type UserHandler struct {
 	Service *services.UserService
 }
 
-func NewUserHandler(store *orm.Store) *UserHandler {
-	userService := &services.UserService{
-		Store: store,
-	}
+func NewUserHandler(store *orm.Store, config *utils.Config, tokenMaker auth.IMaker) *UserHandler {
+	userService := services.NewUserService(store, config, tokenMaker)
 	userHandler := &UserHandler{
 		Service: userService,
 	}

@@ -26,7 +26,10 @@ const (
 	ErrorTitleGroupsNotFound          string = "can not find groups: "
 	ErrorTitleGroupNotCreated         string = "can not create group: "
 	ErrorTitleGroupNoName             string = "can not get group url: "
+	ErrorTitleGroupNoId               string = "can not get group ID: "
 	ErrorTitleGroupCreateDtoNotParsed string = "can not parse createGroupDTO: "
+	ErrorTitleGroupNameNotUpdated     string = "can not update group name: "
+	ErrorTitleGroupUpdateDtoNotParsed string = "can not parse updateGroupDTO: "
 )
 
 const (

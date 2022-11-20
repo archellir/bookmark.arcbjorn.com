@@ -14,6 +14,11 @@ type tUpdateBookmarkParams struct {
 	GroupID int32  `json:"group_id"`
 }
 
+type tUpdateGroupParams struct {
+	ID   int32  `json:"id"`
+	Name string `json:"name"`
+}
+
 type tFormattedBookmark struct {
 	ID        int32     `json:"id"`
 	Name      string    `json:"name"`

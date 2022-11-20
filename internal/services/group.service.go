@@ -89,7 +89,44 @@ func (service *GroupService) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (service *GroupService) Update(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("updated group"))
+	response := CreateResponse(nil, nil)
+	var err error
+
+	var updateGroupDTO tUpdateGroupParams
+	err = GetJson(r, &updateGroupDTO)
+	if err != nil {
+		ReturnResponseWithError(w, response, ErrorTitleGroupUpdateDtoNotParsed, err)
+		return
+	}
+
+	if updateGroupDTO.ID == 0 {
+		ReturnResponseWithError(w, response, ErrorTitleGroupNoId, err)
+		return
+	}
+
+	var group orm.Group
+
+	_, err = service.Store.Queries.GetGroupById(context.Background(), updateGroupDTO.ID)
+	if err != nil {
+		ReturnResponseWithError(w, response, ErrorTitleGroupNotFound, err)
+		return
+	}
+
+	if updateGroupDTO.Name != "" {
+		nameDto := &orm.UpdateGroupNameParams{
+			ID:   updateGroupDTO.ID,
+			Name: updateGroupDTO.Name,
+		}
+
+		group, err = service.Store.Queries.UpdateGroupName(context.Background(), *nameDto)
+		if err != nil {
+			ReturnResponseWithError(w, response, ErrorTitleGroupNameNotUpdated, err)
+			return
+		}
+	}
+
+	response.Data = group
+	ReturnJson(w, response)
 }
 
 func (service *GroupService) Delete(w http.ResponseWriter, r *http.Request) {

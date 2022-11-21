@@ -28,11 +28,11 @@ func (handler *WebHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if r.URL.Path == "/favicon.ico" {
-	// 	rawFile, _ := web.EmbededFilesystem.ReadFile("dist/favicon.ico")
-	// 	w.Write(rawFile)
-	// 	return
-	// }
+	if r.URL.Path == "/favicon.ico" {
+		rawFile, _ := web.EmbededFilesystem.ReadFile("dist/favicon.ico")
+		w.Write(rawFile)
+		return
+	}
 
 	rawFile, _ := web.EmbededFilesystem.ReadFile("dist/index.html")
 	w.Write(rawFile)

@@ -13,8 +13,8 @@ import (
 )
 
 type Server struct {
+	Http   *http.Server
 	config *utils.Config
-	Router *transport.Router
 }
 
 func NewServer(config *utils.Config) (*Server, error) {
@@ -27,9 +27,14 @@ func NewServer(config *utils.Config) (*Server, error) {
 
 	router := transport.NewRouter(store, config, tokenMaker)
 
+	httpServer := &http.Server{
+		Addr:    config.ServerAddress,
+		Handler: router,
+	}
+
 	server := &Server{
+		Http:   httpServer,
 		config: config,
-		Router: router,
 	}
 
 	return server, nil
@@ -37,5 +42,5 @@ func NewServer(config *utils.Config) (*Server, error) {
 
 func (server *Server) Start() {
 	log.Println("Listening and serving HTTP on", server.config.ServerAddress)
-	log.Fatal(http.ListenAndServe(server.config.ServerAddress, server.Router))
+	log.Fatal(server.Http.ListenAndServe())
 }

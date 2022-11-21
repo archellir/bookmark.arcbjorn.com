@@ -12,11 +12,14 @@ make migrate_up
 # regenerate ORM code (just in case)
 make generate_orm
 
-# run full app in dev mode (no hot reloading) - http://localhost:8080/
-make full_dev
+# run backend app in dev mode - http://localhost:8080/
+make dev_backend
 
-# run full app in dev mode (with hot reloading) - http://127.0.0.1:5173/
-make frontend_dev
+# run frontend app in dev mode (with hot reloading) - http://127.0.0.1:5173/
+make dev_frontend
+
+# run full app in dev mode (no hot reloading) - http://localhost:8080/
+make dev_full
 
 ---
 
@@ -60,6 +63,9 @@ make down
 ```sh
 # build binary (no docker)
 make prod
+
+# run binary
+./make
 ```
 
 Refer to `Makefile` for other commands.

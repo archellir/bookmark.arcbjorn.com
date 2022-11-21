@@ -28,8 +28,23 @@ migrate_down ::
 generate_orm ::
 	sqlc generate
 
-test_orm ::
+test_backend_orm ::
 	go test -v -cover -coverpkg "github.com/arcbjorn/bookmark.arcbjorn.com/internal/db/orm" "github.com/arcbjorn/bookmark.arcbjorn.com/internal/db/orm/tests"
 
-test:
+test_backend:
 	go test -v ./...
+
+test_frontend_unit:
+	pnpm --prefix ./web test:unit
+
+test_frontend_e2e:
+	pnpm --prefix ./web test:e2e
+
+full_dev:
+	pnpm --prefix ./web build && go run cmd/main.go
+
+frontend_dev:
+	pnpm --prefix ./web dev
+
+prod:
+	pnpm --prefix ./web build && go build cmd/main.go

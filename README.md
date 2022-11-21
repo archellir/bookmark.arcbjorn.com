@@ -3,7 +3,7 @@
 ### Development
 
 ```shell
-# run api and postgres containers
+# run app (currently disabled) and postgres containers
 make up
 
 # run all migrations
@@ -12,7 +12,15 @@ make migrate_up
 # regenerate ORM code (just in case)
 make generate_orm
 
-# shut down & delete api and postgres containers with volumes
+# run full app in dev mode (no hot reloading) - http://localhost:8080/
+make full_dev
+
+# run full app in dev mode (with hot reloading) - http://127.0.0.1:5173/
+make frontend_dev
+
+---
+
+# shut down & delete app (currently disabled) and postgres containers with volumes
 make down
 ```
 
@@ -32,13 +40,26 @@ make migrate_up_test
 make generate_orm
 
 # run ORM tests
-make test_orm
+make test_backend_orm
 
-# run all tests
-make test
+# run all backend tests
+make test_backend
+
+# run frontend unit tests
+make test_frontend_unit
+
+# run frontend end-to-end tests
+make test_frontend_e2e
 
 # shut down & delete api and postgres containers with volumes
 make down
+```
+
+### Production
+
+```sh
+# build binary (no docker)
+make prod
 ```
 
 Refer to `Makefile` for other commands.

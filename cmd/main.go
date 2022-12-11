@@ -2,13 +2,20 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/archellir/bookmark.arcbjorn.com/api"
 	"github.com/archellir/bookmark.arcbjorn.com/internal/utils"
 )
 
 func main() {
-	config, err := utils.LoadConfig(".")
+	// detect production environment
+	var productionFlag string
+	if len(os.Args) > 1 {
+		productionFlag = os.Args[1]
+	}
+
+	config, err := utils.LoadConfig(".", productionFlag)
 	if err != nil {
 		log.Fatal("can not load config: ", err)
 	}

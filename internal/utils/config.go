@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/spf13/viper"
@@ -14,9 +15,16 @@ type Config struct {
 	AccessTokenDuration time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
 }
 
-func LoadConfig(path string) (config *Config, err error) {
+func LoadConfig(path string, productionFlag string) (config *Config, err error) {
 	viper.AddConfigPath(path)
-	viper.SetConfigName("dev")
+
+	// detect production environment
+	if productionFlag == "--production" {
+		viper.SetConfigName("prod")
+	} else {
+		viper.SetConfigName("dev")
+	}
+
 	viper.SetConfigType("env")
 
 	viper.AutomaticEnv()
@@ -27,5 +35,8 @@ func LoadConfig(path string) (config *Config, err error) {
 	}
 
 	err = viper.Unmarshal(&config)
+
+	fmt.Println(config)
+
 	return
 }

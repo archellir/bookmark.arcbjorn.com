@@ -65,7 +65,7 @@ make down
 make prod
 
 # run binary
-./make
+./main
 ```
 
 Refer to `Makefile` for other commands.

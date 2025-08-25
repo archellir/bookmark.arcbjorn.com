@@ -86,6 +86,34 @@ func (r *BookmarkRepository) GetByID(id int) (*models.Bookmark, error) {
 	return bookmark, nil
 }
 
+// GetByURL retrieves a bookmark by URL
+func (r *BookmarkRepository) GetByURL(url string) (*models.Bookmark, error) {
+	bookmark := &models.Bookmark{}
+	query := `
+		SELECT id, title, url, description, favicon_url, created_at, updated_at, is_favorite
+		FROM bookmarks WHERE url = ?
+	`
+	err := r.db.QueryRow(query, url).Scan(
+		&bookmark.ID, &bookmark.Title, &bookmark.URL, &bookmark.Description,
+		&bookmark.FaviconURL, &bookmark.CreatedAt, &bookmark.UpdatedAt, &bookmark.IsFavorite,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("bookmark not found")
+		}
+		return nil, fmt.Errorf("failed to get bookmark: %w", err)
+	}
+
+	// Load tags
+	tags, err := r.getBookmarkTags(bookmark.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tags: %w", err)
+	}
+	bookmark.Tags = tags
+
+	return bookmark, nil
+}
+
 // List retrieves bookmarks with pagination and filtering
 func (r *BookmarkRepository) List(page, limit int, searchQuery, tagFilter string, favoritesOnly bool) (*models.BookmarkListResponse, error) {
 	offset := (page - 1) * limit

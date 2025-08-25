@@ -13,6 +13,8 @@ import (
 
 	"torimemo/internal/db"
 	"torimemo/internal/handlers"
+	"torimemo/internal/logger"
+	"torimemo/internal/middleware"
 )
 
 //go:embed web/dist/*
@@ -43,6 +45,26 @@ func main() {
 	// Initialize handlers
 	bookmarkHandler := handlers.NewBookmarkHandler(bookmarkRepo)
 	tagHandler := handlers.NewTagHandler(tagRepo)
+	importExportHandler := handlers.NewImportExportHandler(bookmarkRepo, tagRepo)
+
+	// Initialize logger
+	logLevel := os.Getenv("LOG_LEVEL")
+	switch logLevel {
+	case "DEBUG":
+		logger.SetLevel(logger.DEBUG)
+	case "WARN":
+		logger.SetLevel(logger.WARN)  
+	case "ERROR":
+		logger.SetLevel(logger.ERROR)
+	default:
+		logger.SetLevel(logger.INFO)
+	}
+
+	logger.Info("Starting Torimemo server", map[string]interface{}{
+		"port": port,
+		"db_path": dbPath,
+		"log_level": logLevel,
+	})
 
 	// Get the embedded filesystem
 	webFS, err := fs.Sub(staticFiles, "web/dist")
@@ -58,6 +80,8 @@ func main() {
 	mux.Handle("/api/bookmarks/", bookmarkHandler)
 	mux.Handle("/api/tags", tagHandler)
 	mux.Handle("/api/tags/", tagHandler)
+	mux.Handle("/api/export", importExportHandler)
+	mux.Handle("/api/import", importExportHandler)
 	mux.HandleFunc("/api/health", handleHealth)
 	mux.HandleFunc("/api/stats", handleStats(database))
 
@@ -114,11 +138,16 @@ func main() {
 		}))
 	})
 
+	// Apply middleware
+	handler := middleware.LoggingMiddleware(middleware.CORSMiddleware(mux))
+
 	fmt.Printf("🚀 Torimemo server starting on port %s\n", port)
 	fmt.Printf("📊 Database: %s\n", dbPath)
 	fmt.Printf("📍 http://localhost:%s\n", port)
 	fmt.Printf("🔍 API: http://localhost:%s/api/health\n", port)
-	log.Fatal(http.ListenAndServe(":"+port, mux))
+	
+	logger.Info("Server ready to accept connections")
+	log.Fatal(http.ListenAndServe(":"+port, handler))
 }
 
 // handleHealth provides API health check

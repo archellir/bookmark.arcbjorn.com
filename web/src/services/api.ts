@@ -211,6 +211,29 @@ class ApiService {
       method: 'DELETE',
     })
   }
+
+  // Import/Export
+  async exportBookmarks(): Promise<Blob> {
+    const response = await fetch(`${this.baseUrl}/export`)
+    if (!response.ok) {
+      throw new Error('Failed to export bookmarks')
+    }
+    return response.blob()
+  }
+
+  async importBookmarks(file: File): Promise<{ imported: number; skipped: number; total: number }> {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    // Read file as JSON and send as request body
+    const fileContent = await file.text()
+    const data = JSON.parse(fileContent)
+    
+    return this.request('/import', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
 }
 
 export const apiService = new ApiService()

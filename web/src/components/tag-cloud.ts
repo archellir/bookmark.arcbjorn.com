@@ -24,14 +24,14 @@ export class TagCloud extends LitElement {
       justify-content: center;
       align-items: center;
       padding: 2rem;
-      color: #00ffff;
+      color: var(--accent-primary);
     }
 
     .loading-spinner {
       width: 24px;
       height: 24px;
-      border: 2px solid rgba(0, 255, 255, 0.2);
-      border-top: 2px solid #00ffff;
+      border: 2px solid rgba(var(--accent-primary), 0.2);
+      border-top: 2px solid var(--accent-primary);
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
@@ -42,7 +42,7 @@ export class TagCloud extends LitElement {
     }
 
     .error {
-      color: #ff1744;
+      color: var(--accent-danger);
       text-align: center;
       padding: 1rem;
       font-size: 0.875rem;
@@ -58,9 +58,9 @@ export class TagCloud extends LitElement {
     }
 
     .cloud-tag {
-      background: linear-gradient(45deg, rgba(255, 0, 128, 0.1), rgba(0, 255, 255, 0.1));
-      border: 1px solid rgba(0, 255, 255, 0.3);
-      color: #00ffff;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--accent-primary);
       padding: 0.25rem 0.5rem;
       border-radius: 0.25rem;
       font-family: 'Courier New', monospace;
@@ -73,15 +73,15 @@ export class TagCloud extends LitElement {
     }
 
     .cloud-tag.selected {
-      background: rgba(0, 255, 255, 0.2);
-      border-color: #00ffff;
-      color: #fff;
-      box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+      background: rgba(var(--accent-primary), 0.2);
+      border-color: var(--accent-primary);
+      color: var(--text-primary);
+      box-shadow: var(--shadow-md);
     }
 
     .cloud-tag:hover {
-      background: rgba(0, 255, 255, 0.15);
-      border-color: #00ffff;
+      background: var(--bg-card-hover);
+      border-color: var(--accent-primary);
       transform: translateY(-1px);
     }
 
@@ -108,8 +108,8 @@ export class TagCloud extends LitElement {
 
     .clear-filter {
       background: none;
-      border: 1px solid #666;
-      color: #666;
+      border: 1px solid var(--text-muted);
+      color: var(--text-muted);
       padding: 0.25rem 0.5rem;
       border-radius: 0.25rem;
       font-size: 0.75rem;
@@ -118,8 +118,8 @@ export class TagCloud extends LitElement {
     }
 
     .clear-filter:hover {
-      border-color: #ff1744;
-      color: #ff1744;
+      border-color: var(--accent-danger);
+      color: var(--accent-danger);
     }
   `
 

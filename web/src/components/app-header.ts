@@ -15,18 +15,18 @@ export class AppHeader extends LitElement {
       align-items: center;
       justify-content: space-between;
       padding: 1rem 0;
-      border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+      border-bottom: 1px solid var(--border-color);
       margin-bottom: 1rem;
     }
 
     .logo {
       font-size: 1.5rem;
       font-weight: bold;
-      background: linear-gradient(45deg, #00ffff, #ff0080);
+      background: linear-gradient(45deg, var(--accent-primary), var(--accent-secondary));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      text-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+      text-shadow: var(--shadow-md);
     }
 
     .search-container {
@@ -38,9 +38,9 @@ export class AppHeader extends LitElement {
 
     .search-input {
       width: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      border: 1px solid rgba(0, 255, 255, 0.3);
-      color: white;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
       padding: 0.75rem 1rem;
       border-radius: 0.5rem;
       font-family: 'Courier New', monospace;
@@ -49,18 +49,18 @@ export class AppHeader extends LitElement {
 
     .search-input:focus {
       outline: none;
-      border-color: #00ffff;
-      box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+      border-color: var(--accent-primary);
+      box-shadow: var(--shadow-md);
     }
 
     .search-input::placeholder {
-      color: #666;
+      color: var(--text-muted);
     }
 
     .add-button {
-      background: linear-gradient(45deg, rgba(0, 255, 255, 0.1) 0%, transparent 50%);
-      border: 1px solid #00ffff;
-      color: #00ffff;
+      background: var(--bg-card);
+      border: 1px solid var(--accent-primary);
+      color: var(--accent-primary);
       padding: 0.75rem 1.5rem;
       border-radius: 0.5rem;
       font-family: 'Courier New', monospace;
@@ -74,9 +74,9 @@ export class AppHeader extends LitElement {
     }
 
     .add-button:hover {
-      background: #00ffff;
-      color: black;
-      box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+      background: var(--accent-primary);
+      color: var(--bg-primary);
+      box-shadow: var(--shadow-lg);
     }
 
     .add-button:before {

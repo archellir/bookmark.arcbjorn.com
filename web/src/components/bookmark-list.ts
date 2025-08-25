@@ -198,15 +198,91 @@ export class BookmarkList extends LitElement {
       cursor: not-allowed;
     }
 
+    /* Mobile responsiveness */
+    @media (max-width: 1024px) {
+      .bookmark-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 0.75rem;
+      }
+    }
+
     @media (max-width: 768px) {
       .bookmark-grid {
         grid-template-columns: 1fr;
+        gap: 0.75rem;
       }
-
+      
       .stats {
-        flex-direction: column;
-        gap: 1rem;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        padding: 0.75rem;
         text-align: center;
+      }
+      
+      .stats-item {
+        min-width: 80px;
+        flex: 1;
+      }
+      
+      .stats-number {
+        font-size: 1.125rem;
+      }
+      
+      .stats-label {
+        font-size: 0.7rem;
+      }
+      
+      .bulk-select-button {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+      }
+      
+      .load-more-button {
+        padding: 0.625rem 1.25rem;
+        font-size: 0.9rem;
+        width: 100%;
+        max-width: 280px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .bookmark-grid {
+        gap: 0.5rem;
+      }
+      
+      .stats {
+        padding: 0.5rem;
+        gap: 0.5rem;
+      }
+      
+      .stats-item {
+        min-width: 70px;
+      }
+      
+      .stats-number {
+        font-size: 1rem;
+      }
+      
+      .stats-label {
+        font-size: 0.65rem;
+      }
+      
+      .empty-state {
+        padding: 2rem 0.5rem;
+      }
+      
+      .empty-icon {
+        font-size: 2.5rem;
+      }
+      
+      .loading {
+        padding: 1.5rem 0.5rem;
+      }
+      
+      .error {
+        padding: 1.5rem 0.75rem;
+        margin: 0.5rem;
       }
     }
   `

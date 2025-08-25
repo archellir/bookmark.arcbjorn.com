@@ -23,6 +23,7 @@ type CreateBookmarkRequest struct {
 	Title       string   `json:"title"`
 	URL         string   `json:"url" validate:"required,url"`
 	Description *string  `json:"description,omitempty"`
+	FaviconURL  *string  `json:"favicon_url,omitempty"`
 	Tags        []string `json:"tags,omitempty"`
 }
 

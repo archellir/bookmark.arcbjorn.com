@@ -1,16 +1,6 @@
 import { LitElement, html, css } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
-
-interface Bookmark {
-  id: number
-  title: string
-  url: string
-  description?: string
-  tags: string[]
-  favicon?: string
-  createdAt: string
-  isFavorite: boolean
-}
+import type { Bookmark } from '../services/api.ts'
 
 @customElement('bookmark-item')
 export class BookmarkItem extends LitElement {
@@ -197,18 +187,21 @@ export class BookmarkItem extends LitElement {
   `
 
   render() {
+    const createdDate = new Date(this.bookmark.created_at)
     const formattedDate = new Intl.DateTimeFormat('en-US', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
-    }).format(new Date(this.bookmark.createdAt))
+    }).format(createdDate)
+
+    const tagNames = this.bookmark.tags?.map(tag => tag.name) || []
 
     return html`
       <div class="bookmark-card">
         <div class="bookmark-header">
-          ${this.bookmark.favicon ? html`
-            <img class="favicon" src="${this.bookmark.favicon}" alt="Favicon" />
+          ${this.bookmark.favicon_url ? html`
+            <img class="favicon" src="${this.bookmark.favicon_url}" alt="Favicon" />
           ` : html`
             <div class="favicon-placeholder">${this.bookmark.title.charAt(0).toUpperCase()}</div>
           `}
@@ -225,10 +218,10 @@ export class BookmarkItem extends LitElement {
           <div class="bookmark-description">${this.bookmark.description}</div>
         ` : ''}
 
-        ${this.bookmark.tags.length > 0 ? html`
+        ${tagNames.length > 0 ? html`
           <div class="bookmark-tags">
-            ${this.bookmark.tags.map(tag => html`
-              <span class="tag">${tag}</span>
+            ${tagNames.map(tagName => html`
+              <span class="tag">${tagName}</span>
             `)}
           </div>
         ` : ''}
@@ -237,10 +230,10 @@ export class BookmarkItem extends LitElement {
           <div class="bookmark-date">${formattedDate}</div>
           <div class="bookmark-actions">
             <button 
-              class="action-button favorite-button ${this.bookmark.isFavorite ? 'active' : ''}"
+              class="action-button favorite-button ${this.bookmark.is_favorite ? 'active' : ''}"
               @click=${this._handleToggleFavorite}
-              title=${this.bookmark.isFavorite ? 'Remove from favorites' : 'Add to favorites'}>
-              ${this.bookmark.isFavorite ? '⭐' : '☆'}
+              title=${this.bookmark.is_favorite ? 'Remove from favorites' : 'Add to favorites'}>
+              ${this.bookmark.is_favorite ? '⭐' : '☆'}
             </button>
             <button 
               class="action-button edit-button"

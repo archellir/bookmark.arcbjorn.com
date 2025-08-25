@@ -1,13 +1,17 @@
 import { LitElement, html, css } from 'lit'
-import { customElement, state } from 'lit/decorators.js'
+import { customElement, state, property } from 'lit/decorators.js'
+import { apiService, type Bookmark, type CreateBookmarkRequest, type UpdateBookmarkRequest } from '../services/api.ts'
 
 @customElement('bookmark-dialog')
 export class BookmarkDialog extends LitElement {
+  @property({ type: Object }) editBookmark: Bookmark | null = null
   @state() private _url = ''
   @state() private _title = ''
   @state() private _description = ''
   @state() private _tags = ''
   @state() private _isAnalyzing = false
+  @state() private _isSubmitting = false
+  @state() private _error: string | null = null
 
   static styles = css`
     :host {
@@ -76,6 +80,16 @@ export class BookmarkDialog extends LitElement {
     .close-button:hover {
       color: #ff1744;
       background: rgba(255, 23, 68, 0.1);
+    }
+
+    .error-message {
+      background: rgba(255, 23, 68, 0.1);
+      border: 1px solid rgba(255, 23, 68, 0.3);
+      color: #ff1744;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+      text-align: center;
     }
 
     .form-group {
@@ -204,13 +218,18 @@ export class BookmarkDialog extends LitElement {
       overflow: hidden;
     }
 
+    .button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     .button-primary {
       border-color: #00ffff;
       color: #00ffff;
       background: linear-gradient(45deg, rgba(0, 255, 255, 0.1) 0%, transparent 50%);
     }
 
-    .button-primary:hover {
+    .button-primary:hover:not(:disabled) {
       background: #00ffff;
       color: black;
       box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
@@ -221,7 +240,7 @@ export class BookmarkDialog extends LitElement {
       color: #666;
     }
 
-    .button-secondary:hover {
+    .button-secondary:hover:not(:disabled) {
       border-color: #a0a0a0;
       color: #a0a0a0;
     }
@@ -242,13 +261,37 @@ export class BookmarkDialog extends LitElement {
     }
   `
 
+  connectedCallback() {
+    super.connectedCallback()
+    if (this.editBookmark) {
+      this._populateForm()
+    }
+  }
+
+  private _populateForm() {
+    if (!this.editBookmark) return
+
+    this._url = this.editBookmark.url
+    this._title = this.editBookmark.title
+    this._description = this.editBookmark.description || ''
+    this._tags = this.editBookmark.tags?.map(tag => tag.name).join(', ') || ''
+  }
+
   render() {
+    const isEdit = !!this.editBookmark
+
     return html`
       <div class="dialog" @click=${this._handleDialogClick}>
         <div class="dialog-header">
-          <h2 class="dialog-title">Add Bookmark</h2>
+          <h2 class="dialog-title">${isEdit ? 'Edit' : 'Add'} Bookmark</h2>
           <button class="close-button" @click=${this._handleClose}>×</button>
         </div>
+
+        ${this._error ? html`
+          <div class="error-message">
+            ⚠️ ${this._error}
+          </div>
+        ` : ''}
 
         <form @submit=${this._handleSubmit}>
           <div class="form-group">
@@ -303,6 +346,7 @@ export class BookmarkDialog extends LitElement {
               <span class="tag-suggestion" @click=${this._addSuggestedTag} data-tag="Development">Development</span>
               <span class="tag-suggestion" @click=${this._addSuggestedTag} data-tag="Tutorial">Tutorial</span>
               <span class="tag-suggestion" @click=${this._addSuggestedTag} data-tag="Reference">Reference</span>
+              <span class="tag-suggestion" @click=${this._addSuggestedTag} data-tag="Code">Code</span>
             </div>
           </div>
 
@@ -310,8 +354,8 @@ export class BookmarkDialog extends LitElement {
             <button type="button" class="button button-secondary" @click=${this._handleClose}>
               Cancel
             </button>
-            <button type="submit" class="button button-primary">
-              Save Bookmark
+            <button type="submit" class="button button-primary" ?disabled=${this._isSubmitting}>
+              ${this._isSubmitting ? 'Saving...' : `${isEdit ? 'Update' : 'Save'} Bookmark`}
             </button>
           </div>
         </form>
@@ -327,27 +371,61 @@ export class BookmarkDialog extends LitElement {
     this.dispatchEvent(new CustomEvent('close'))
   }
 
-  private _handleSubmit(e: Event) {
+  private async _handleSubmit(e: Event) {
     e.preventDefault()
     
-    const bookmark = {
-      url: this._url,
-      title: this._title || this._url,
-      description: this._description,
-      tags: this._tags.split(',').map(tag => tag.trim()).filter(tag => tag)
-    }
+    if (this._isSubmitting) return
 
-    this.dispatchEvent(new CustomEvent('save', {
-      detail: bookmark
-    }))
+    this._error = null
+    this._isSubmitting = true
+
+    try {
+      const tags = this._tags.split(',').map(tag => tag.trim()).filter(tag => tag)
+      const isEdit = !!this.editBookmark
+
+      let bookmark: any
+
+      if (isEdit) {
+        const updateData: UpdateBookmarkRequest = {}
+        
+        if (this._url !== this.editBookmark!.url) updateData.url = this._url
+        if (this._title !== this.editBookmark!.title) updateData.title = this._title
+        if (this._description !== (this.editBookmark!.description || '')) {
+          updateData.description = this._description || undefined
+        }
+        
+        // Always update tags to handle additions/removals
+        updateData.tags = tags
+
+        bookmark = await apiService.updateBookmark(this.editBookmark!.id, updateData)
+      } else {
+        const createData: CreateBookmarkRequest = {
+          url: this._url,
+          title: this._title || this._url,
+          description: this._description || undefined,
+          tags
+        }
+
+        bookmark = await apiService.createBookmark(createData)
+      }
+
+      this.dispatchEvent(new CustomEvent('save', {
+        detail: { bookmark, isEdit }
+      }))
+      
+    } catch (error) {
+      this._error = error instanceof Error ? error.message : 'Failed to save bookmark'
+    } finally {
+      this._isSubmitting = false
+    }
   }
 
   private _handleUrlInput(e: Event) {
     const input = e.target as HTMLInputElement
     this._url = input.value
     
-    // Simulate AI analysis
-    if (this._url && this._url.startsWith('http')) {
+    // Simulate AI analysis for new bookmarks
+    if (!this.editBookmark && this._url && this._url.startsWith('http')) {
       this._simulateAnalysis()
     }
   }
@@ -383,15 +461,18 @@ export class BookmarkDialog extends LitElement {
     
     setTimeout(() => {
       this._isAnalyzing = false
-      // Simulate fetched metadata
+      // Simulate fetched metadata based on URL
       if (this._url.includes('github.com')) {
-        this._title = 'GitHub Repository'
+        if (!this._title) this._title = 'GitHub Repository'
         this._tags = 'Development, Code, Git'
       } else if (this._url.includes('youtube.com')) {
-        this._title = 'YouTube Video'
+        if (!this._title) this._title = 'YouTube Video'
         this._tags = 'Video, Tutorial, Media'
+      } else if (this._url.includes('stackoverflow.com')) {
+        if (!this._title) this._title = 'Stack Overflow Question'
+        this._tags = 'Development, Q&A, Programming'
       } else {
-        this._title = 'Analyzed Website'
+        if (!this._title) this._title = 'Web Page'
         this._tags = 'Web, Reference'
       }
     }, 1500)

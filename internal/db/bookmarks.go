@@ -20,7 +20,7 @@ func NewBookmarkRepository(db *DB) *BookmarkRepository {
 }
 
 // Create creates a new bookmark
-func (r *BookmarkRepository) Create(req *models.CreateBookmarkRequest) (*models.Bookmark, error) {
+func (r *BookmarkRepository) Create(req *models.CreateBookmarkRequest, userID int) (*models.Bookmark, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
@@ -29,11 +29,11 @@ func (r *BookmarkRepository) Create(req *models.CreateBookmarkRequest) (*models.
 
 	// Insert bookmark
 	query := `
-		INSERT INTO bookmarks (title, url, description, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?)
+		INSERT INTO bookmarks (title, url, description, user_id, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?)
 	`
 	now := time.Now()
-	result, err := tx.Exec(query, req.Title, req.URL, req.Description, now, now)
+	result, err := tx.Exec(query, req.Title, req.URL, req.Description, userID, now, now)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create bookmark: %w", err)
 	}
@@ -55,17 +55,17 @@ func (r *BookmarkRepository) Create(req *models.CreateBookmarkRequest) (*models.
 	}
 
 	// Fetch and return the created bookmark
-	return r.GetByID(int(bookmarkID))
+	return r.GetByID(int(bookmarkID), userID)
 }
 
 // GetByID retrieves a bookmark by ID
-func (r *BookmarkRepository) GetByID(id int) (*models.Bookmark, error) {
+func (r *BookmarkRepository) GetByID(id, userID int) (*models.Bookmark, error) {
 	bookmark := &models.Bookmark{}
 	query := `
 		SELECT id, title, url, description, favicon_url, created_at, updated_at, is_favorite
-		FROM bookmarks WHERE id = ?
+		FROM bookmarks WHERE id = ? AND user_id = ?
 	`
-	err := r.db.QueryRow(query, id).Scan(
+	err := r.db.QueryRow(query, id, userID).Scan(
 		&bookmark.ID, &bookmark.Title, &bookmark.URL, &bookmark.Description,
 		&bookmark.FaviconURL, &bookmark.CreatedAt, &bookmark.UpdatedAt, &bookmark.IsFavorite,
 	)
@@ -86,14 +86,14 @@ func (r *BookmarkRepository) GetByID(id int) (*models.Bookmark, error) {
 	return bookmark, nil
 }
 
-// GetByURL retrieves a bookmark by URL
-func (r *BookmarkRepository) GetByURL(url string) (*models.Bookmark, error) {
+// GetByURL retrieves a bookmark by URL for a specific user
+func (r *BookmarkRepository) GetByURL(url string, userID int) (*models.Bookmark, error) {
 	bookmark := &models.Bookmark{}
 	query := `
 		SELECT id, title, url, description, favicon_url, created_at, updated_at, is_favorite
-		FROM bookmarks WHERE url = ?
+		FROM bookmarks WHERE url = ? AND user_id = ?
 	`
-	err := r.db.QueryRow(query, url).Scan(
+	err := r.db.QueryRow(query, url, userID).Scan(
 		&bookmark.ID, &bookmark.Title, &bookmark.URL, &bookmark.Description,
 		&bookmark.FaviconURL, &bookmark.CreatedAt, &bookmark.UpdatedAt, &bookmark.IsFavorite,
 	)
@@ -126,13 +126,16 @@ func (r *BookmarkRepository) GetBookmarkTags(bookmarkID int) ([]models.Tag, erro
 
 
 // List retrieves bookmarks with pagination and filtering
-func (r *BookmarkRepository) List(page, limit int, searchQuery, tagFilter string, favoritesOnly bool) (*models.BookmarkListResponse, error) {
+func (r *BookmarkRepository) List(page, limit int, searchQuery, tagFilter string, favoritesOnly bool, userID int) (*models.BookmarkListResponse, error) {
 	offset := (page - 1) * limit
 
 	// Build query conditions
 	var conditions []string
 	var args []interface{}
 	
+	// Always filter by user ID
+	conditions = append(conditions, "user_id = ?")
+	args = append(args, userID)
 	if searchQuery != "" {
 		conditions = append(conditions, "id IN (SELECT rowid FROM bookmarks_fts WHERE bookmarks_fts MATCH ?)")
 		args = append(args, searchQuery)
@@ -224,7 +227,7 @@ func (r *BookmarkRepository) List(page, limit int, searchQuery, tagFilter string
 }
 
 // Update updates an existing bookmark
-func (r *BookmarkRepository) Update(id int, req *models.UpdateBookmarkRequest) (*models.Bookmark, error) {
+func (r *BookmarkRepository) Update(id int, req *models.UpdateBookmarkRequest, userID int) (*models.Bookmark, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
@@ -255,9 +258,9 @@ func (r *BookmarkRepository) Update(id int, req *models.UpdateBookmarkRequest) (
 	if len(setParts) > 0 {
 		setParts = append(setParts, "updated_at = ?")
 		args = append(args, time.Now())
-		args = append(args, id)
+		args = append(args, id, userID)
 
-		query := fmt.Sprintf("UPDATE bookmarks SET %s WHERE id = ?", strings.Join(setParts, ", "))
+		query := fmt.Sprintf("UPDATE bookmarks SET %s WHERE id = ? AND user_id = ?", strings.Join(setParts, ", "))
 		if _, err := tx.Exec(query, args...); err != nil {
 			return nil, fmt.Errorf("failed to update bookmark: %w", err)
 		}
@@ -283,12 +286,12 @@ func (r *BookmarkRepository) Update(id int, req *models.UpdateBookmarkRequest) (
 	}
 
 	// Fetch and return the updated bookmark
-	return r.GetByID(id)
+	return r.GetByID(id, userID)
 }
 
 // Delete deletes a bookmark by ID
-func (r *BookmarkRepository) Delete(id int) error {
-	result, err := r.db.Exec("DELETE FROM bookmarks WHERE id = ?", id)
+func (r *BookmarkRepository) Delete(id int, userID int) error {
+	result, err := r.db.Exec("DELETE FROM bookmarks WHERE id = ? AND user_id = ?", id, userID)
 	if err != nil {
 		return fmt.Errorf("failed to delete bookmark: %w", err)
 	}
@@ -306,7 +309,7 @@ func (r *BookmarkRepository) Delete(id int) error {
 }
 
 // Search performs full-text search on bookmarks
-func (r *BookmarkRepository) Search(query string, limit int) ([]models.SearchResult, error) {
+func (r *BookmarkRepository) Search(query string, limit int, userID int) ([]models.SearchResult, error) {
 	sqlQuery := `
 		SELECT b.id, b.title, b.url, b.description, b.favicon_url, 
 		       b.created_at, b.updated_at, b.is_favorite, 
@@ -314,12 +317,12 @@ func (r *BookmarkRepository) Search(query string, limit int) ([]models.SearchRes
 		       snippet(bookmarks_fts, 0, '<mark>', '</mark>', '...', 32) as snippet
 		FROM bookmarks b
 		JOIN bookmarks_fts ON b.id = bookmarks_fts.rowid
-		WHERE bookmarks_fts MATCH ?
+		WHERE bookmarks_fts MATCH ? AND b.user_id = ?
 		ORDER BY rank
 		LIMIT ?
 	`
 
-	rows, err := r.db.Query(sqlQuery, query, limit)
+	rows, err := r.db.Query(sqlQuery, query, userID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search bookmarks: %w", err)
 	}
@@ -413,4 +416,139 @@ func (r *BookmarkRepository) getBookmarkTags(bookmarkID int) ([]models.Tag, erro
 	}
 
 	return tags, rows.Err()
+}
+
+// Helper methods for backward compatibility (internal use only)
+
+// GetByURLAnyUser retrieves a bookmark by URL regardless of user (for duplicate detection)
+func (r *BookmarkRepository) GetByURLAnyUser(url string) (*models.Bookmark, error) {
+	bookmark := &models.Bookmark{}
+	query := `
+		SELECT id, title, url, description, favicon_url, created_at, updated_at, is_favorite
+		FROM bookmarks WHERE url = ? LIMIT 1
+	`
+	err := r.db.QueryRow(query, url).Scan(
+		&bookmark.ID, &bookmark.Title, &bookmark.URL, &bookmark.Description,
+		&bookmark.FaviconURL, &bookmark.CreatedAt, &bookmark.UpdatedAt, &bookmark.IsFavorite,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("bookmark not found")
+		}
+		return nil, fmt.Errorf("failed to get bookmark: %w", err)
+	}
+
+	// Load tags
+	tags, err := r.getBookmarkTags(bookmark.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tags: %w", err)
+	}
+	bookmark.Tags = tags
+
+	return bookmark, nil
+}
+
+// ListAllUsers retrieves bookmarks for all users (for system operations)
+func (r *BookmarkRepository) ListAllUsers(page, limit int, searchQuery, tagFilter string, favoritesOnly bool) (*models.BookmarkListResponse, error) {
+	offset := (page - 1) * limit
+
+	// Build query conditions
+	var conditions []string
+	var args []interface{}
+	
+	if searchQuery != "" {
+		conditions = append(conditions, "id IN (SELECT rowid FROM bookmarks_fts WHERE bookmarks_fts MATCH ?)")
+		args = append(args, searchQuery)
+	}
+
+	if tagFilter != "" {
+		conditions = append(conditions, `id IN (
+			SELECT bt.bookmark_id FROM bookmark_tags bt
+			JOIN tags t ON bt.tag_id = t.id
+			WHERE t.name = ?
+		)`)
+		args = append(args, tagFilter)
+	}
+	
+	if favoritesOnly {
+		conditions = append(conditions, "is_favorite = 1")
+	}
+
+	// Build WHERE clause
+	whereClause := ""
+	if len(conditions) > 0 {
+		whereClause = "WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	// Count total
+	countQuery := fmt.Sprintf(`
+		SELECT COUNT(*) 
+		FROM bookmarks %s
+	`, whereClause)
+
+	var total int
+	err := r.db.QueryRow(countQuery, args...).Scan(&total)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count bookmarks: %w", err)
+	}
+
+	// Get bookmarks
+	query := fmt.Sprintf(`
+		SELECT id, title, url, description, favicon_url, created_at, updated_at, is_favorite
+		FROM bookmarks %s
+		ORDER BY created_at DESC
+		LIMIT ? OFFSET ?
+	`, whereClause)
+
+	args = append(args, limit, offset)
+	rows, err := r.db.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query bookmarks: %w", err)
+	}
+	defer rows.Close()
+
+	var bookmarks []models.Bookmark
+	for rows.Next() {
+		var bookmark models.Bookmark
+		err := rows.Scan(
+			&bookmark.ID, &bookmark.Title, &bookmark.URL, &bookmark.Description,
+			&bookmark.FaviconURL, &bookmark.CreatedAt, &bookmark.UpdatedAt, &bookmark.IsFavorite,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan bookmark: %w", err)
+		}
+
+		// Load tags for this bookmark
+		tags, err := r.getBookmarkTags(bookmark.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load tags for bookmark %d: %w", bookmark.ID, err)
+		}
+		bookmark.Tags = tags
+
+		bookmarks = append(bookmarks, bookmark)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows iteration error: %w", err)
+	}
+
+	// Calculate pagination info
+	totalPages := (total + limit - 1) / limit
+	hasMore := page < totalPages
+
+	// Count additional stats
+	var tagCount, favoriteCount int
+	r.db.QueryRow("SELECT COUNT(DISTINCT id) FROM tags").Scan(&tagCount)
+	r.db.QueryRow("SELECT COUNT(*) FROM bookmarks WHERE is_favorite = 1").Scan(&favoriteCount)
+
+	return &models.BookmarkListResponse{
+		Bookmarks:     bookmarks,
+		Total:         total,
+		Page:          page,
+		Limit:         limit,
+		HasMore:       hasMore,
+		TotalPages:    totalPages,
+		TagCount:      tagCount,
+		FavoriteCount: favoriteCount,
+	}, nil
 }

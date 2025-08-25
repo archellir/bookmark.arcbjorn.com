@@ -309,9 +309,10 @@ func (h *ImportHandler) parseTime(timeStr string) int64 {
 }
 
 func (h *ImportHandler) importBookmarksBatch(bookmarks []*models.Bookmark) (imported, skipped, errors int) {
+	userID := 1 // Default userID for import operations
 	for _, bookmark := range bookmarks {
 		// Check for duplicates by URL
-		existing, err := h.repo.GetByURL(bookmark.URL)
+		existing, err := h.repo.GetByURL(bookmark.URL, userID)
 		if err == nil && existing != nil {
 			skipped++
 			continue
@@ -332,7 +333,7 @@ func (h *ImportHandler) importBookmarksBatch(bookmarks []*models.Bookmark) (impo
 		}
 
 		// Create bookmark
-		if _, err := h.repo.Create(req); err != nil {
+		if _, err := h.repo.Create(req, userID); err != nil {
 			errors++
 			continue
 		}

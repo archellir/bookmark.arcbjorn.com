@@ -11,6 +11,7 @@ import (
 	"torimemo/internal/ai"
 	"torimemo/internal/db"
 	"torimemo/internal/models"
+	"torimemo/internal/search"
 )
 
 // BookmarkHandler handles bookmark-related HTTP requests
@@ -18,6 +19,7 @@ type BookmarkHandler struct {
 	repo           *db.BookmarkRepository
 	learningRepo   *db.LearningRepository
 	categorizer    *ai.Categorizer
+	fuzzyMatcher   *search.FuzzyMatcher
 }
 
 // NewBookmarkHandler creates a new bookmark handler
@@ -26,6 +28,7 @@ func NewBookmarkHandler(repo *db.BookmarkRepository, learningRepo *db.LearningRe
 		repo:           repo,
 		learningRepo:   learningRepo,
 		categorizer:    ai.NewCategorizer(),
+		fuzzyMatcher:   search.DefaultFuzzyMatcher(),
 	}
 }
 
@@ -42,6 +45,8 @@ func (h *BookmarkHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.createBookmark(w, r)
 	case r.Method == "GET" && path == "/search":
 		h.searchBookmarks(w, r)
+	case r.Method == "GET" && path == "/fuzzy-search":
+		h.fuzzySearchBookmarks(w, r)
 	case r.Method == "POST" && path == "/suggest-tags":
 		h.suggestTags(w, r)
 	case r.Method == "GET" && strings.HasPrefix(path, "/"):
@@ -294,6 +299,172 @@ func (h *BookmarkHandler) searchBookmarks(w http.ResponseWriter, r *http.Request
 	h.writeJSON(w, response)
 }
 
+// fuzzySearchBookmarks handles GET /api/bookmarks/fuzzy-search
+func (h *BookmarkHandler) fuzzySearchBookmarks(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("q")
+	if query == "" {
+		h.writeError(w, "Search query is required", http.StatusBadRequest)
+		return
+	}
+
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+
+	// First try exact FTS search
+	exactResults, err := h.repo.Search(query, limit)
+	if err != nil {
+		h.writeError(w, fmt.Sprintf("Search failed: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// If we have good exact results, return them
+	if len(exactResults) >= limit/2 {
+		response := map[string]interface{}{
+			"query":       query,
+			"results":     exactResults,
+			"count":       len(exactResults),
+			"search_type": "exact",
+		}
+		h.writeJSON(w, response)
+		return
+	}
+
+	// Get all bookmarks for fuzzy matching
+	allBookmarks, err := h.repo.List(1, 1000, "", "", false) // Get more bookmarks for fuzzy matching
+	if err != nil {
+		h.writeError(w, fmt.Sprintf("Failed to get bookmarks for fuzzy search: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Prepare candidates for fuzzy matching
+	var titleCandidates []string
+	var descriptionCandidates []string
+	var tagCandidates []string
+	bookmarkIndex := make(map[string]models.Bookmark)
+	
+	for _, bookmark := range allBookmarks.Bookmarks {
+		// Index by title
+		titleCandidates = append(titleCandidates, bookmark.Title)
+		bookmarkIndex[bookmark.Title] = bookmark
+		
+		// Index by description
+		if bookmark.Description != nil && *bookmark.Description != "" {
+			descriptionCandidates = append(descriptionCandidates, *bookmark.Description)
+			bookmarkIndex[*bookmark.Description] = bookmark
+		}
+		
+		// Index by tags
+		for _, tag := range bookmark.Tags {
+			tagKey := "tag:" + tag.Name
+			tagCandidates = append(tagCandidates, tagKey)
+			bookmarkIndex[tagKey] = bookmark
+		}
+	}
+
+	// Perform fuzzy search on titles
+	titleMatches := h.fuzzyMatcher.Search(query, titleCandidates)
+	
+	// Perform fuzzy search on descriptions
+	descMatches := h.fuzzyMatcher.Search(query, descriptionCandidates)
+	
+	// Perform fuzzy search on tags
+	tagMatches := h.fuzzyMatcher.Search(query, tagCandidates)
+
+	// Combine and deduplicate results
+	seenBookmarks := make(map[int]bool)
+	var fuzzyResults []models.SearchResult
+	
+	// Process title matches first (highest priority)
+	for _, match := range titleMatches {
+		if bookmark, exists := bookmarkIndex[match.Text]; exists {
+			if !seenBookmarks[bookmark.ID] {
+				fuzzyResults = append(fuzzyResults, models.SearchResult{
+					Bookmark: bookmark,
+					Rank:     match.Similarity,
+					Snippet:  h.createSnippet(bookmark.Title, query),
+				})
+				seenBookmarks[bookmark.ID] = true
+			}
+		}
+	}
+	
+	// Process description matches
+	for _, match := range descMatches {
+		if bookmark, exists := bookmarkIndex[match.Text]; exists {
+			if !seenBookmarks[bookmark.ID] && len(fuzzyResults) < limit {
+				fuzzyResults = append(fuzzyResults, models.SearchResult{
+					Bookmark: bookmark,
+					Rank:     match.Similarity * 0.8, // Lower priority for description matches
+					Snippet:  h.createSnippet(match.Text, query),
+				})
+				seenBookmarks[bookmark.ID] = true
+			}
+		}
+	}
+	
+	// Process tag matches
+	for _, match := range tagMatches {
+		if bookmark, exists := bookmarkIndex[match.Text]; exists {
+			if !seenBookmarks[bookmark.ID] && len(fuzzyResults) < limit {
+				fuzzyResults = append(fuzzyResults, models.SearchResult{
+					Bookmark: bookmark,
+					Rank:     match.Similarity * 0.6, // Lower priority for tag matches
+					Snippet:  strings.TrimPrefix(match.Text, "tag:"),
+				})
+				seenBookmarks[bookmark.ID] = true
+			}
+		}
+	}
+	
+	// Limit results
+	if len(fuzzyResults) > limit {
+		fuzzyResults = fuzzyResults[:limit]
+	}
+
+	response := map[string]interface{}{
+		"query":        query,
+		"results":      fuzzyResults,
+		"count":        len(fuzzyResults),
+		"search_type":  "fuzzy",
+		"exact_count":  len(exactResults),
+	}
+
+	h.writeJSON(w, response)
+}
+
+// createSnippet creates a search snippet with highlighted terms
+func (h *BookmarkHandler) createSnippet(text, query string) string {
+	if len(text) <= 100 {
+		return text
+	}
+	
+	lowerText := strings.ToLower(text)
+	lowerQuery := strings.ToLower(query)
+	
+	// Find the query in the text
+	index := strings.Index(lowerText, lowerQuery)
+	if index == -1 {
+		// If not found, return first 100 chars
+		return text[:100] + "..."
+	}
+	
+	// Create snippet around the match
+	start := max(0, index-30)
+	end := min(len(text), index+len(query)+30)
+	
+	snippet := text[start:end]
+	if start > 0 {
+		snippet = "..." + snippet
+	}
+	if end < len(text) {
+		snippet = snippet + "..."
+	}
+	
+	return snippet
+}
+
 // suggestTags handles POST /api/bookmarks/suggest-tags
 func (h *BookmarkHandler) suggestTags(w http.ResponseWriter, r *http.Request) {
 	var req struct {
@@ -399,4 +570,19 @@ func (h *BookmarkHandler) determineCorrectionType(originalTags, finalTags []stri
 	}
 	
 	return "kept"
+}
+
+// Helper functions for fuzzy search
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

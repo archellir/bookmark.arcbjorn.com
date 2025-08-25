@@ -1,22 +1,7 @@
-export interface ArchivedContent {
-  id: number
-  url: string
-  title: string
-  content: string
-  textContent: string
-  screenshot?: string
-  cached_at: number
-  size: number
-  status: 'cached' | 'failed' | 'pending'
-}
+import type { ArchivedContent, ArchiveStats } from '~/types'
 
-export interface ArchiveStats {
-  total_items: number
-  total_size: number
-  cache_hit_ratio: number
-  oldest_entry: number
-  newest_entry: number
-}
+// Re-export for backward compatibility
+export type { ArchivedContent, ArchiveStats }
 
 export class ArchiveService {
   private dbName = 'torimemo-archive'

@@ -1,97 +1,45 @@
 // API service for Torimemo bookmark manager
 
-export interface Bookmark {
-  id: number
-  title: string
-  url: string
-  description?: string
-  favicon_url?: string
-  created_at: string
-  updated_at: string
-  is_favorite: boolean
-  tags?: Tag[]
-}
+import type { 
+  Bookmark, 
+  Tag, 
+  Folder, 
+  BookmarkListResponse, 
+  SearchResult,
+  CreateBookmarkRequest,
+  UpdateBookmarkRequest,
+  CreateFolderRequest,
+  UpdateFolderRequest,
+  ApiError
+} from '~/types'
 
-export interface Tag {
-  id: number
-  name: string
-  color: string
-  created_at: string
+// Extended types specific to API service
+export interface ExtendedTag extends Tag {
   count?: number
 }
 
-export interface Folder {
-  id: number
-  name: string
-  description?: string
-  color: string
-  icon: string
-  parent_id?: number
-  sort_order: number
-  created_at: string
-  updated_at: string
-  children?: Folder[]
+export interface ExtendedFolder extends Folder {
   bookmark_count: number
   path: string
 }
 
 export interface FolderTree {
-  folder: Folder
+  folder: ExtendedFolder
   children: FolderTree[]
 }
 
-export interface CreateFolderRequest {
-  name: string
-  description?: string
-  color?: string
-  icon?: string
-  parent_id?: number
-  sort_order?: number
-}
-
-export interface UpdateFolderRequest {
-  name?: string
-  description?: string
-  color?: string
-  icon?: string
-  parent_id?: number
-  sort_order?: number
-}
-
-export interface CreateBookmarkRequest {
-  title: string
-  url: string
-  description?: string
-  tags?: string[]
-}
-
-export interface UpdateBookmarkRequest {
-  title?: string
-  url?: string
-  description?: string
-  is_favorite?: boolean
-  tags?: string[]
-}
-
-export interface BookmarkListResponse {
-  bookmarks: Bookmark[]
-  total: number
-  page: number
-  limit: number
-  has_more: boolean
-  total_pages: number
-  tag_count: number
-  favorite_count: number
-}
-
-export interface SearchResult extends Bookmark {
-  rank: number
-  snippet?: string
-}
-
-export interface ApiError {
-  error: string
-  status: number
+// Re-export commonly used types for backward compatibility
+export type { 
+  Bookmark, 
+  Tag, 
+  Folder, 
+  BookmarkListResponse, 
+  SearchResult, 
+  CreateBookmarkRequest, 
+  UpdateBookmarkRequest,
+  CreateFolderRequest,
+  UpdateFolderRequest,
+  ApiError
 }
 
 class ApiService {

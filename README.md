@@ -105,18 +105,49 @@ go run main.go
 
 ## 📦 Deployment Options
 
+### Production Deployment
+
+Quick production setup with SSL and reverse proxy:
+
+```bash
+# Copy and edit environment variables
+cp .env.example .env.production
+# Edit .env.production with your values
+
+# Deploy with SSL-enabled reverse proxy
+./deploy.sh
+```
+
 ### Environment Variables
 
 - `PORT`: Server port (default: 8080)
 - `DB_PATH`: Database path (default: ./torimemo.db)
+- `LOG_LEVEL`: Logging level (DEBUG, INFO, WARN, ERROR)
+- `ALLOWED_ORIGINS`: CORS allowed origins
+- `RATE_LIMIT`: Rate limit (requests per minute)
+- `RATE_BURST`: Rate limit burst size
+- `JWT_SECRET`: JWT signing secret (change in production!)
+- `JWT_EXPIRY`: JWT token expiry duration
+
+### Docker Compose
+
+```bash
+# Development
+docker-compose up -d
+
+# Production with nginx reverse proxy
+docker-compose -f docker-compose.prod.yml up -d
+```
 
 ### Production Checklist
 
-- [ ] Set `DB_PATH` to persistent volume
-- [ ] Configure reverse proxy (nginx/traefik)
-- [ ] Set up SSL/TLS termination
-- [ ] Configure backup strategy
-- [ ] Monitor health endpoint
+- [ ] Set strong `JWT_SECRET` in production
+- [ ] Configure `ALLOWED_ORIGINS` for your domain
+- [ ] Use real SSL certificates (replace self-signed)
+- [ ] Set up database backups
+- [ ] Configure log rotation
+- [ ] Monitor health endpoint at `/api/health`
+- [ ] Set appropriate `LOG_LEVEL` (WARN for production)
 
 ## 🤖 AI Categorization (Coming Soon)
 

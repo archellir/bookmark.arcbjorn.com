@@ -34,6 +34,7 @@ func NewAIFeedbackHandler(bookmarkRepo *db.BookmarkRepository, learningRepo *db.
 // RegisterRoutes registers AI feedback routes
 func (h *AIFeedbackHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/ai/suggest-tags", h.suggestTags)
+	mux.HandleFunc("/api/ai/semantic-tags", h.suggestSemanticTags)
 	mux.HandleFunc("/api/ai/feedback", h.submitFeedback)
 	mux.HandleFunc("/api/ai/recategorize", h.recategorizeBookmark)
 	mux.HandleFunc("/api/ai/batch-recategorize", h.batchRecategorize)
@@ -444,6 +445,87 @@ func (h *AIFeedbackHandler) getUserID(r *http.Request) int {
 		return userID
 	}
 	return 1 // Default for backward compatibility
+}
+
+// suggestSemanticTags provides AI-powered semantic tag suggestions
+func (h *AIFeedbackHandler) suggestSemanticTags(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		h.writeError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req TagSuggestionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if req.URL == "" {
+		h.writeError(w, "URL is required", http.StatusBadRequest)
+		return
+	}
+
+	// Create temporary bookmark for analysis
+	bookmark := &models.Bookmark{
+		URL:         req.URL,
+		Title:       req.Title,
+		Description: &req.Description,
+	}
+
+	// Get regular AI suggestions
+	suggestions, err := h.categorizer.CategorizeBookmark(bookmark)
+	if err != nil {
+		h.writeError(w, fmt.Sprintf("Failed to analyze bookmark: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Get additional semantic analysis
+	semanticAnalyzer := ai.NewSemanticAnalyzer()
+	semanticSuggestions := semanticAnalyzer.AnalyzeSemanticContent(req.Title, req.Description, req.URL)
+
+	// Combine and enhance suggestions
+	response := map[string]interface{}{
+		"url":                 req.URL,
+		"traditional_tags":    suggestions.Tags,
+		"semantic_suggestions": semanticSuggestions,
+		"enhanced_tags":       h.combineSemanticSuggestions(suggestions.Tags, semanticSuggestions),
+		"confidence":          suggestions.Confidence,
+		"source":             suggestions.Source,
+		"category":           suggestions.Category,
+	}
+
+	// Include content if fetched
+	if suggestions.Title != "" {
+		response["fetched_title"] = suggestions.Title
+	}
+	if suggestions.Description != "" {
+		response["fetched_description"] = suggestions.Description
+	}
+
+	h.writeJSON(w, response)
+}
+
+func (h *AIFeedbackHandler) combineSemanticSuggestions(traditionalTags []string, semanticSuggestions []ai.SemanticSuggestion) []string {
+	tagSet := make(map[string]bool)
+	var combinedTags []string
+
+	// Add traditional tags
+	for _, tag := range traditionalTags {
+		if !tagSet[tag] {
+			tagSet[tag] = true
+			combinedTags = append(combinedTags, tag)
+		}
+	}
+
+	// Add high-confidence semantic tags
+	for _, semSugg := range semanticSuggestions {
+		if semSugg.Confidence > 0.6 && !tagSet[semSugg.Tag] {
+			tagSet[semSugg.Tag] = true
+			combinedTags = append(combinedTags, semSugg.Tag)
+		}
+	}
+
+	return combinedTags
 }
 
 func (h *AIFeedbackHandler) writeJSON(w http.ResponseWriter, data interface{}) {

@@ -52,6 +52,7 @@ func main() {
 	advancedSearchHandler := handlers.NewAdvancedSearchHandler(bookmarkRepo)
 	learningHandler := handlers.NewLearningHandler(bookmarkRepo, learningRepo)
 	importHandler := handlers.NewImportHandler(bookmarkRepo)
+	archiveHandler := handlers.NewArchiveHandler(bookmarkRepo)
 	
 	// Initialize health checker service
 	healthChecker := services.NewHealthChecker(bookmarkRepo)
@@ -98,6 +99,7 @@ func main() {
 	mux.Handle("/api/learning/", learningHandler)
 	importHandler.RegisterRoutes(mux)
 	healthHandler.RegisterRoutes(mux)
+	archiveHandler.RegisterRoutes(mux)
 	mux.HandleFunc("/api/health", handleHealth)
 	mux.HandleFunc("/api/stats", handleStats(database))
 

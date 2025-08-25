@@ -12,23 +12,26 @@ import (
 	"torimemo/internal/db"
 	"torimemo/internal/models"
 	"torimemo/internal/search"
+	"torimemo/internal/services"
 )
 
 // BookmarkHandler handles bookmark-related HTTP requests
 type BookmarkHandler struct {
-	repo           *db.BookmarkRepository
-	learningRepo   *db.LearningRepository
-	categorizer    *ai.Categorizer
-	fuzzyMatcher   *search.FuzzyMatcher
+	repo             *db.BookmarkRepository
+	learningRepo     *db.LearningRepository
+	categorizer      *ai.Categorizer
+	fuzzyMatcher     *search.FuzzyMatcher
+	duplicateService *services.DuplicateService
 }
 
 // NewBookmarkHandler creates a new bookmark handler
 func NewBookmarkHandler(repo *db.BookmarkRepository, learningRepo *db.LearningRepository) *BookmarkHandler {
 	return &BookmarkHandler{
-		repo:           repo,
-		learningRepo:   learningRepo,
-		categorizer:    ai.NewCategorizer(),
-		fuzzyMatcher:   search.DefaultFuzzyMatcher(),
+		repo:             repo,
+		learningRepo:     learningRepo,
+		categorizer:      ai.NewCategorizer(),
+		fuzzyMatcher:     search.DefaultFuzzyMatcher(),
+		duplicateService: services.NewDuplicateService(repo),
 	}
 }
 

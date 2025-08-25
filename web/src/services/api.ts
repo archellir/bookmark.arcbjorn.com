@@ -20,6 +20,44 @@ export interface Tag {
   count?: number
 }
 
+export interface Folder {
+  id: number
+  name: string
+  description?: string
+  color: string
+  icon: string
+  parent_id?: number
+  sort_order: number
+  created_at: string
+  updated_at: string
+  children?: Folder[]
+  bookmark_count: number
+  path: string
+}
+
+export interface FolderTree {
+  folder: Folder
+  children: FolderTree[]
+}
+
+export interface CreateFolderRequest {
+  name: string
+  description?: string
+  color?: string
+  icon?: string
+  parent_id?: number
+  sort_order?: number
+}
+
+export interface UpdateFolderRequest {
+  name?: string
+  description?: string
+  color?: string
+  icon?: string
+  parent_id?: number
+  sort_order?: number
+}
+
 export interface CreateBookmarkRequest {
   title: string
   url: string
@@ -257,6 +295,59 @@ class ApiService {
     return this.request('/search/advanced', {
       method: 'POST',
       body: JSON.stringify(params),
+    })
+  }
+
+  // Folders
+  async getFolders(parentId?: number): Promise<{ folders: Folder[]; count: number }> {
+    const searchParams = new URLSearchParams()
+    if (parentId) searchParams.set('parent_id', parentId.toString())
+    
+    const query = searchParams.toString()
+    return this.request(`/folders${query ? `?${query}` : ''}`)
+  }
+
+  async getFolderTree(): Promise<{ tree: FolderTree[] }> {
+    return this.request('/folders/tree')
+  }
+
+  async getFolder(id: number): Promise<Folder> {
+    return this.request(`/folders/${id}`)
+  }
+
+  async createFolder(data: CreateFolderRequest): Promise<Folder> {
+    return this.request('/folders', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateFolder(id: number, data: UpdateFolderRequest): Promise<Folder> {
+    return this.request(`/folders/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteFolder(id: number): Promise<void> {
+    return this.request(`/folders/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async getBookmarkFolders(bookmarkId: number): Promise<{ folders: Folder[]; count: number }> {
+    return this.request(`/folders/bookmark/${bookmarkId}`)
+  }
+
+  async addBookmarkToFolder(bookmarkId: number, folderId: number): Promise<void> {
+    return this.request(`/folders/bookmark/${bookmarkId}/${folderId}`, {
+      method: 'POST',
+    })
+  }
+
+  async removeBookmarkFromFolder(bookmarkId: number, folderId: number): Promise<void> {
+    return this.request(`/folders/bookmark/${bookmarkId}/${folderId}`, {
+      method: 'DELETE',
     })
   }
 }

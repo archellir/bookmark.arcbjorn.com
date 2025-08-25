@@ -8,18 +8,25 @@ import (
 	"strconv"
 	"strings"
 
+	"torimemo/internal/ai"
 	"torimemo/internal/db"
 	"torimemo/internal/models"
 )
 
 // BookmarkHandler handles bookmark-related HTTP requests
 type BookmarkHandler struct {
-	repo *db.BookmarkRepository
+	repo           *db.BookmarkRepository
+	learningRepo   *db.LearningRepository
+	categorizer    *ai.Categorizer
 }
 
 // NewBookmarkHandler creates a new bookmark handler
-func NewBookmarkHandler(repo *db.BookmarkRepository) *BookmarkHandler {
-	return &BookmarkHandler{repo: repo}
+func NewBookmarkHandler(repo *db.BookmarkRepository, learningRepo *db.LearningRepository) *BookmarkHandler {
+	return &BookmarkHandler{
+		repo:           repo,
+		learningRepo:   learningRepo,
+		categorizer:    ai.NewCategorizer(),
+	}
 }
 
 // ServeHTTP implements the http.Handler interface
@@ -35,6 +42,8 @@ func (h *BookmarkHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.createBookmark(w, r)
 	case r.Method == "GET" && path == "/search":
 		h.searchBookmarks(w, r)
+	case r.Method == "POST" && path == "/suggest-tags":
+		h.suggestTags(w, r)
 	case r.Method == "GET" && strings.HasPrefix(path, "/"):
 		h.getBookmark(w, r, strings.TrimPrefix(path, "/"))
 	case r.Method == "PUT" && strings.HasPrefix(path, "/"):
@@ -101,6 +110,22 @@ func (h *BookmarkHandler) createBookmark(w http.ResponseWriter, r *http.Request)
 		req.Title = req.URL
 	}
 
+	// Use AI to suggest tags if none provided
+	var suggestions *ai.TagSuggestion
+	if len(req.Tags) == 0 {
+		tempBookmark := &models.Bookmark{
+			Title:       req.Title,
+			URL:         req.URL,
+			Description: req.Description,
+		}
+
+		var err error
+		suggestions, err = h.categorizer.CategorizeBookmark(tempBookmark)
+		if err == nil && len(suggestions.Tags) > 0 {
+			req.Tags = suggestions.Tags
+		}
+	}
+
 	// Create bookmark
 	bookmark, err := h.repo.Create(&req)
 	if err != nil {
@@ -110,6 +135,26 @@ func (h *BookmarkHandler) createBookmark(w http.ResponseWriter, r *http.Request)
 		}
 		h.writeError(w, fmt.Sprintf("Failed to create bookmark: %v", err), http.StatusInternalServerError)
 		return
+	}
+
+	// Save AI suggestions to learning system (async, don't fail if it errors)
+	if suggestions != nil {
+		go func() {
+			// Convert TagSuggestion to LearnedPattern for storage
+			domain := ""
+			if parsedURL, err := url.Parse(suggestions.URL); err == nil {
+				domain = parsedURL.Hostname()
+			}
+			
+			pattern := &models.LearnedPattern{
+				URLPattern:     suggestions.URL,
+				Domain:         domain,
+				ConfirmedTags:  suggestions.Tags,
+				Confidence:     suggestions.Confidence,
+				SampleCount:    1,
+			}
+			h.learningRepo.SavePattern(pattern)
+		}()
 	}
 
 	w.WriteHeader(http.StatusCreated)
@@ -220,6 +265,52 @@ func (h *BookmarkHandler) searchBookmarks(w http.ResponseWriter, r *http.Request
 		"query":   query,
 		"results": results,
 		"count":   len(results),
+	}
+
+	h.writeJSON(w, response)
+}
+
+// suggestTags handles POST /api/bookmarks/suggest-tags
+func (h *BookmarkHandler) suggestTags(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		URL         string `json:"url"`
+		Title       string `json:"title"`
+		Description string `json:"description"`
+	}
+	
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if req.URL == "" {
+		h.writeError(w, "URL is required", http.StatusBadRequest)
+		return
+	}
+
+	// Create temporary bookmark for categorization
+	var description *string
+	if req.Description != "" {
+		description = &req.Description
+	}
+	tempBookmark := &models.Bookmark{
+		URL:         req.URL,
+		Title:       req.Title,
+		Description: description,
+	}
+
+	// Get AI suggestions
+	suggestions, err := h.categorizer.CategorizeBookmark(tempBookmark)
+	if err != nil {
+		h.writeError(w, fmt.Sprintf("Failed to get suggestions: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"tags":       suggestions.Tags,
+		"category":   suggestions.Category,
+		"confidence": suggestions.Confidence,
+		"source":     suggestions.Source,
 	}
 
 	h.writeJSON(w, response)

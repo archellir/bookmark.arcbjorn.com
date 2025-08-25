@@ -94,15 +94,16 @@ func main() {
 	}
 
 	created := 0
+	userID := 1 // Default userID for seeding
 	for _, bookmark := range demoBookmarks {
 		// Check if bookmark already exists
-		if existing, _ := bookmarkRepo.GetByURL(bookmark.URL); existing != nil {
+		if existing, _ := bookmarkRepo.GetByURL(bookmark.URL, userID); existing != nil {
 			fmt.Printf("⏭️  Skipping existing bookmark: %s\n", bookmark.Title)
 			continue
 		}
 
 		// Create bookmark
-		if _, err := bookmarkRepo.Create(&bookmark); err != nil {
+		if _, err := bookmarkRepo.Create(&bookmark, userID); err != nil {
 			fmt.Printf("❌ Failed to create bookmark %s: %v\n", bookmark.Title, err)
 			continue
 		}

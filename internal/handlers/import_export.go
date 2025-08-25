@@ -56,7 +56,7 @@ func (h *ImportExportHandler) exportBookmarks(w http.ResponseWriter, r *http.Req
 	}
 
 	// Get all bookmarks
-	bookmarks, err := h.bookmarkRepo.List(1, 10000, "", "", false) // Large limit for export
+	bookmarks, err := h.bookmarkRepo.List(1, 10000, "", "", false, 1) // Large limit for export
 	if err != nil {
 		h.writeError(w, fmt.Sprintf("Failed to fetch bookmarks: %v", err), http.StatusInternalServerError)
 		return
@@ -121,7 +121,7 @@ func (h *ImportExportHandler) importBookmarks(w http.ResponseWriter, r *http.Req
 	// Import bookmarks
 	for _, bookmark := range importData.Bookmarks {
 		// Check if bookmark already exists by URL
-		existing, err := h.bookmarkRepo.GetByURL(bookmark.URL)
+		existing, err := h.bookmarkRepo.GetByURL(bookmark.URL, 1)
 		if err == nil && existing != nil {
 			skipped++
 			continue
@@ -140,7 +140,7 @@ func (h *ImportExportHandler) importBookmarks(w http.ResponseWriter, r *http.Req
 			Tags:        tagNames,
 		}
 
-		_, err = h.bookmarkRepo.Create(&createReq)
+		_, err = h.bookmarkRepo.Create(&createReq, 1)
 		if err != nil {
 			// Log error but continue with other bookmarks
 			continue

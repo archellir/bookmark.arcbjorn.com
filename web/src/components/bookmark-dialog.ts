@@ -29,16 +29,15 @@ export class BookmarkDialog extends LitElement {
     }
 
     .dialog {
-      background: linear-gradient(135deg, rgba(0, 255, 255, 0.05) 0%, transparent 50%);
-      background-color: rgba(10, 10, 10, 0.95);
-      border: 1px solid rgba(0, 255, 255, 0.3);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
       border-radius: 1rem;
       padding: 2rem;
       width: 90%;
       max-width: 500px;
       max-height: 90vh;
       overflow-y: auto;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      box-shadow: var(--shadow-lg);
       position: relative;
     }
 
@@ -49,7 +48,7 @@ export class BookmarkDialog extends LitElement {
       left: 0;
       right: 0;
       height: 2px;
-      background: linear-gradient(90deg, #00ffff, #ff0080, #ffff00);
+      background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary), var(--accent-warning));
     }
 
     .dialog-header {
@@ -62,14 +61,14 @@ export class BookmarkDialog extends LitElement {
     .dialog-title {
       font-size: 1.25rem;
       font-weight: bold;
-      color: #00ffff;
-      text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+      color: var(--accent-primary);
+      text-shadow: var(--shadow-sm);
     }
 
     .close-button {
       background: none;
       border: none;
-      color: #666;
+      color: var(--text-muted);
       font-size: 1.5rem;
       cursor: pointer;
       padding: 0.25rem;
@@ -78,14 +77,14 @@ export class BookmarkDialog extends LitElement {
     }
 
     .close-button:hover {
-      color: #ff1744;
-      background: rgba(255, 23, 68, 0.1);
+      color: var(--accent-danger);
+      background: rgba(var(--accent-danger), 0.1);
     }
 
     .error-message {
-      background: rgba(255, 23, 68, 0.1);
-      border: 1px solid rgba(255, 23, 68, 0.3);
-      color: #ff1744;
+      background: rgba(var(--accent-danger), 0.1);
+      border: 1px solid rgba(var(--accent-danger), 0.3);
+      color: var(--accent-danger);
       padding: 1rem;
       border-radius: 0.5rem;
       margin-bottom: 1rem;
@@ -99,7 +98,7 @@ export class BookmarkDialog extends LitElement {
     .form-label {
       display: block;
       margin-bottom: 0.5rem;
-      color: #a0a0a0;
+      color: var(--text-secondary);
       font-size: 0.875rem;
       font-weight: 500;
       text-transform: uppercase;
@@ -108,9 +107,9 @@ export class BookmarkDialog extends LitElement {
 
     .form-input, .form-textarea {
       width: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      border: 1px solid rgba(0, 255, 255, 0.3);
-      color: white;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
       padding: 0.75rem;
       border-radius: 0.5rem;
       font-family: 'Courier New', monospace;
@@ -120,8 +119,8 @@ export class BookmarkDialog extends LitElement {
 
     .form-input:focus, .form-textarea:focus {
       outline: none;
-      border-color: #00ffff;
-      box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+      border-color: var(--accent-primary);
+      box-shadow: var(--shadow-md);
     }
 
     .form-textarea {
@@ -130,7 +129,7 @@ export class BookmarkDialog extends LitElement {
     }
 
     .form-input::placeholder, .form-textarea::placeholder {
-      color: #666;
+      color: var(--text-muted);
     }
 
     .analyze-status {
@@ -138,15 +137,15 @@ export class BookmarkDialog extends LitElement {
       align-items: center;
       gap: 0.5rem;
       margin-top: 0.5rem;
-      color: #00ffff;
+      color: var(--accent-primary);
       font-size: 0.875rem;
     }
 
     .analyze-spinner {
       width: 16px;
       height: 16px;
-      border: 2px solid rgba(0, 255, 255, 0.2);
-      border-top: 2px solid #00ffff;
+      border: 2px solid rgba(var(--accent-primary), 0.2);
+      border-top: 2px solid var(--accent-primary);
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
@@ -164,9 +163,9 @@ export class BookmarkDialog extends LitElement {
     }
 
     .tag-suggestion {
-      background: linear-gradient(45deg, rgba(255, 0, 128, 0.2), rgba(0, 255, 255, 0.2));
-      border: 1px solid rgba(255, 0, 128, 0.3);
-      color: #ff0080;
+      background: rgba(var(--accent-secondary), 0.1);
+      border: 1px solid rgba(var(--accent-secondary), 0.3);
+      color: var(--accent-secondary);
       font-size: 0.7rem;
       padding: 0.25rem 0.5rem;
       border-radius: 0.25rem;
@@ -177,7 +176,7 @@ export class BookmarkDialog extends LitElement {
     }
 
     .tag-suggestion:hover {
-      background: rgba(255, 0, 128, 0.3);
+      background: rgba(var(--accent-secondary), 0.2);
       transform: translateY(-1px);
     }
 
@@ -224,25 +223,25 @@ export class BookmarkDialog extends LitElement {
     }
 
     .button-primary {
-      border-color: #00ffff;
-      color: #00ffff;
-      background: linear-gradient(45deg, rgba(0, 255, 255, 0.1) 0%, transparent 50%);
+      border-color: var(--accent-primary);
+      color: var(--accent-primary);
+      background: var(--bg-card);
     }
 
     .button-primary:hover:not(:disabled) {
-      background: #00ffff;
-      color: black;
-      box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+      background: var(--accent-primary);
+      color: var(--bg-primary);
+      box-shadow: var(--shadow-lg);
     }
 
     .button-secondary {
-      border-color: #666;
-      color: #666;
+      border-color: var(--text-muted);
+      color: var(--text-muted);
     }
 
     .button-secondary:hover:not(:disabled) {
-      border-color: #a0a0a0;
-      color: #a0a0a0;
+      border-color: var(--text-secondary);
+      color: var(--text-secondary);
     }
 
     .button:before {

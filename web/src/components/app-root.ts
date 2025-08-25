@@ -9,6 +9,8 @@ import './theme-toggle.ts'
 import './import-dialog.ts'
 import './export-dialog.ts'
 import './advanced-search.ts'
+import { searchSuggestionsService } from '../services/search-suggestions.ts'
+import { archiveService } from '../services/archive.ts'
 
 @customElement('app-root')
 export class AppRoot extends LitElement {
@@ -647,6 +649,23 @@ export class AppRoot extends LitElement {
 
   private _handleSearch(e: CustomEvent) {
     this._searchQuery = e.detail.query || ''
+    
+    // If offline and there's a search query, also search cached content
+    if (archiveService.isOffline() && this._searchQuery.trim()) {
+      this._searchOfflineContent(this._searchQuery)
+    }
+  }
+
+  private async _searchOfflineContent(query: string) {
+    try {
+      const results = await archiveService.searchCached(query)
+      if (results.length > 0) {
+        // Could show these in a separate offline results section
+        console.log('Found', results.length, 'cached results for offline search')
+      }
+    } catch (error) {
+      console.error('Offline search failed:', error)
+    }
   }
 
   private _handleFavoritesToggle(e: Event) {
@@ -776,6 +795,9 @@ export class AppRoot extends LitElement {
         })
         this._availableDomains = Array.from(domains).sort()
       }
+
+      // Update search suggestions service with metadata
+      searchSuggestionsService.updateMetadata(this._availableTags, this._availableDomains)
     } catch (error) {
       console.error('Failed to load tags and domains:', error)
     }

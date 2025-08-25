@@ -179,22 +179,25 @@ mkdir -p ./models/fasttext ./models/onnx
 # Start application (Layer 1 works immediately)
 ./torimemo
 
-# Check AI status
-curl http://localhost:8080/api/ai/status
-
-# Test categorization
-curl -X POST http://localhost:8080/api/ai/categorize \
+# Check AI predictive analysis
+curl -X POST http://localhost:8080/api/ai/predict-tags \
   -H "Content-Type: application/json" \
   -d '{"url":"https://github.com","title":"GitHub","description":"Code repository"}'
+
+# Find duplicate bookmarks  
+curl -X POST http://localhost:8080/api/ai/duplicates/check \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://github.com/golang/go","title":"Go Programming"}'
 ```
 
 ### AI API Endpoints
 
-- `GET /api/ai/status` - Check AI model status
-- `POST /api/ai/categorize` - Get tag suggestions
-- `GET /api/ai/duplicates/{id}` - Find similar bookmarks
-- `GET /api/ai/clusters` - Get bookmark clusters
-- `GET /api/ai/predict/tags` - Predictive tag suggestions
+- `POST /api/ai/predict-tags` - Get predictive tag suggestions
+- `POST /api/ai/duplicates/check` - Check for duplicate bookmarks
+- `POST /api/ai/duplicates/find-all` - Find all duplicate groups
+- `POST /api/ai/cluster` - Cluster bookmarks by similarity
+- `POST /api/ai/cluster/analyze` - Analyze clustering potential
+- `POST /api/ai/predict/learn` - Submit learning feedback
 
 **📖 Full AI Setup Guide**: See [AI_SETUP.md](AI_SETUP.md) for detailed model installation and configuration.
 

@@ -188,13 +188,30 @@ export class BookmarkList extends LitElement {
     this._error = null
 
     try {
-      const response: BookmarkListResponse = await apiService.getBookmarks({
-        page: this._stats.page,
-        limit: 20,
-        search: this.searchQuery || undefined,
-        tag: this.tagFilter || undefined,
-        favorites: this.favoritesOnly || undefined
-      })
+      let response: BookmarkListResponse
+
+      // Use full-text search if search query exists
+      if (this.searchQuery && this.searchQuery.trim()) {
+        const searchResponse = await apiService.searchBookmarks(this.searchQuery, 20)
+        // Convert SearchResult[] to BookmarkListResponse format
+        response = {
+          bookmarks: searchResponse.results,
+          total: searchResponse.count,
+          page: 1,
+          limit: 20,
+          has_more: false,
+          total_pages: 1,
+          tag_count: 0,
+          favorite_count: searchResponse.results.filter(b => b.is_favorite).length
+        }
+      } else {
+        response = await apiService.getBookmarks({
+          page: this._stats.page,
+          limit: 20,
+          tag: this.tagFilter || undefined,
+          favorites: this.favoritesOnly || undefined
+        })
+      }
 
       if (reset) {
         this._bookmarks = response.bookmarks
@@ -247,10 +264,15 @@ export class BookmarkList extends LitElement {
     if (this._bookmarks.length === 0) {
       return html`
         <div class="empty-state">
-          <div class="empty-icon">🔖</div>
-          <h3>No bookmarks found</h3>
+          <div class="empty-icon">${this.searchQuery ? '🔍' : '🔖'}</div>
+          <h3>${this.searchQuery ? 'No search results' : 'No bookmarks found'}</h3>
           ${this.searchQuery ? html`
-            <p>No results for "${this.searchQuery}". Try a different search term.</p>
+            <p>No results for <strong>"${this.searchQuery}"</strong></p>
+            <p>Try different keywords or check your spelling.</p>
+          ` : this.tagFilter ? html`
+            <p>No bookmarks found with the tag <strong>"${this.tagFilter}"</strong></p>
+          ` : this.favoritesOnly ? html`
+            <p>No favorite bookmarks yet. Star some bookmarks to see them here!</p>
           ` : html`
             <p>Add your first bookmark to get started!</p>
           `}
@@ -285,7 +307,7 @@ export class BookmarkList extends LitElement {
         `)}
       </div>
 
-      ${this._stats.hasMore ? html`
+      ${this._stats.hasMore && !this.searchQuery ? html`
         <div class="load-more">
           <button 
             class="load-more-button"
@@ -340,6 +362,12 @@ export class BookmarkList extends LitElement {
       if (bookmark?.is_favorite) {
         this._stats.favorites--
       }
+
+      // Notify parent to refresh tag cloud
+      this.dispatchEvent(new CustomEvent('bookmark-deleted', {
+        bubbles: true,
+        detail: { bookmark }
+      }))
     } catch (error) {
       console.error('Failed to delete bookmark:', error)
       // TODO: Show toast notification

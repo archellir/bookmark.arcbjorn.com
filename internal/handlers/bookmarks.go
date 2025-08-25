@@ -33,14 +33,14 @@ func (h *BookmarkHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.listBookmarks(w, r)
 	case r.Method == "POST" && path == "":
 		h.createBookmark(w, r)
+	case r.Method == "GET" && path == "/search":
+		h.searchBookmarks(w, r)
 	case r.Method == "GET" && strings.HasPrefix(path, "/"):
 		h.getBookmark(w, r, strings.TrimPrefix(path, "/"))
 	case r.Method == "PUT" && strings.HasPrefix(path, "/"):
 		h.updateBookmark(w, r, strings.TrimPrefix(path, "/"))
 	case r.Method == "DELETE" && strings.HasPrefix(path, "/"):
 		h.deleteBookmark(w, r, strings.TrimPrefix(path, "/"))
-	case r.Method == "GET" && path == "/search":
-		h.searchBookmarks(w, r)
 	default:
 		h.writeError(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}

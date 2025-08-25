@@ -32,18 +32,18 @@ func (h *TagHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.listTags(w, r)
 	case r.Method == "POST" && path == "":
 		h.createTag(w, r)
-	case r.Method == "GET" && strings.HasPrefix(path, "/"):
-		h.getTag(w, r, strings.TrimPrefix(path, "/"))
-	case r.Method == "PUT" && strings.HasPrefix(path, "/"):
-		h.updateTag(w, r, strings.TrimPrefix(path, "/"))
-	case r.Method == "DELETE" && strings.HasPrefix(path, "/"):
-		h.deleteTag(w, r, strings.TrimPrefix(path, "/"))
 	case r.Method == "GET" && path == "/cloud":
 		h.getTagCloud(w, r)
 	case r.Method == "GET" && path == "/popular":
 		h.getPopularTags(w, r)
 	case r.Method == "DELETE" && path == "/cleanup":
 		h.cleanupUnusedTags(w, r)
+	case r.Method == "GET" && strings.HasPrefix(path, "/"):
+		h.getTag(w, r, strings.TrimPrefix(path, "/"))
+	case r.Method == "PUT" && strings.HasPrefix(path, "/"):
+		h.updateTag(w, r, strings.TrimPrefix(path, "/"))
+	case r.Method == "DELETE" && strings.HasPrefix(path, "/"):
+		h.deleteTag(w, r, strings.TrimPrefix(path, "/"))
 	default:
 		h.writeError(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}

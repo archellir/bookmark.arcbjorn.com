@@ -55,6 +55,7 @@ func main() {
 	importHandler := handlers.NewImportHandler(bookmarkRepo)
 	archiveHandler := handlers.NewArchiveHandler(bookmarkRepo)
 	folderHandler := handlers.NewFolderHandler(folderRepo, bookmarkRepo)
+	duplicateHandler := handlers.NewDuplicateHandler(bookmarkRepo)
 	
 	// Initialize health checker service
 	healthChecker := services.NewHealthChecker(bookmarkRepo)
@@ -105,6 +106,7 @@ func main() {
 	healthHandler.RegisterRoutes(mux)
 	archiveHandler.RegisterRoutes(mux)
 	folderHandler.RegisterRoutes(mux)
+	duplicateHandler.RegisterRoutes(mux)
 	mux.HandleFunc("/api/health", handleHealth)
 	mux.HandleFunc("/api/stats", handleStats(database))
 

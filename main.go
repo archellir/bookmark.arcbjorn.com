@@ -41,9 +41,10 @@ func main() {
 	// Initialize repositories
 	bookmarkRepo := db.NewBookmarkRepository(database)
 	tagRepo := db.NewTagRepository(database)
+	learningRepo := db.NewLearningRepository(database)
 
 	// Initialize handlers
-	bookmarkHandler := handlers.NewBookmarkHandler(bookmarkRepo)
+	bookmarkHandler := handlers.NewBookmarkHandler(bookmarkRepo, learningRepo)
 	tagHandler := handlers.NewTagHandler(tagRepo)
 	importExportHandler := handlers.NewImportExportHandler(bookmarkRepo, tagRepo)
 	analyticsHandler := handlers.NewAnalyticsHandler(bookmarkRepo, tagRepo, database)
@@ -166,7 +167,8 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 			"bookmark_management",
 			"full_text_search", 
 			"tag_system",
-			"learning_system_ready"
+			"ai_auto_categorization",
+			"learning_system_active"
 		]
 	}`)
 }

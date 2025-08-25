@@ -1,10 +1,23 @@
 import { LitElement, html, css } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { customElement, property, state } from 'lit/decorators.js'
 import type { Bookmark } from '../services/api.ts'
+
+export interface BookmarkHealth {
+  id: number
+  url: string
+  status: 'healthy' | 'broken' | 'slow' | 'redirect' | 'unknown'
+  status_code: number
+  response_time_ms: number
+  redirect_url?: string
+  error?: string
+  last_checked: string
+}
 
 @customElement('bookmark-item')
 export class BookmarkItem extends LitElement {
   @property({ type: Object }) bookmark!: Bookmark
+  @state() private _health: BookmarkHealth | null = null
+  @state() private _loadingHealth = false
 
   static styles = css`
     :host {
@@ -185,7 +198,168 @@ export class BookmarkItem extends LitElement {
       color: var(--accent-danger);
       background: rgba(var(--accent-danger), 0.1);
     }
+
+    .health-indicator {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+    }
+
+    .health-healthy {
+      background: var(--accent-success);
+      box-shadow: 0 0 8px rgba(var(--accent-success), 0.4);
+    }
+
+    .health-broken {
+      background: var(--accent-danger);
+      box-shadow: 0 0 8px rgba(var(--accent-danger), 0.4);
+    }
+
+    .health-slow {
+      background: var(--accent-warning);
+      box-shadow: 0 0 8px rgba(var(--accent-warning), 0.4);
+    }
+
+    .health-redirect {
+      background: var(--accent-secondary);
+      box-shadow: 0 0 8px rgba(var(--accent-secondary), 0.4);
+    }
+
+    .health-unknown {
+      background: var(--text-muted);
+      box-shadow: 0 0 8px rgba(var(--text-muted), 0.4);
+    }
+
+    .health-tooltip {
+      position: absolute;
+      top: -2rem;
+      right: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 0.25rem;
+      padding: 0.5rem;
+      font-size: 0.75rem;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 1000;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .health-indicator:hover .health-tooltip {
+      opacity: 1;
+    }
+
+    .health-check-button {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0.25rem;
+      border-radius: 0.25rem;
+      transition: all 0.3s ease;
+      font-size: 0.875rem;
+      opacity: 0.7;
+    }
+
+    .health-check-button:hover {
+      color: var(--accent-primary);
+      background: rgba(var(--accent-primary), 0.1);
+      opacity: 1;
+    }
+
+    .health-loading {
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(var(--accent-primary), 0.2);
+      border-top: 2px solid var(--accent-primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   `
+
+  connectedCallback() {
+    super.connectedCallback()
+    this._loadHealth()
+  }
+
+  private async _loadHealth() {
+    try {
+      const response = await fetch(`/api/health/bookmark/${this.bookmark.id}`)
+      if (response.ok) {
+        this._health = await response.json()
+      }
+    } catch (error) {
+      // Health data is optional, don't error if it fails
+      console.debug('Failed to load health data:', error)
+    }
+  }
+
+  private async _checkHealthNow() {
+    if (this._loadingHealth) return
+    
+    this._loadingHealth = true
+    try {
+      const response = await fetch(`/api/health/check/${this.bookmark.id}`, {
+        method: 'POST'
+      })
+      if (response.ok) {
+        this._health = await response.json()
+      }
+    } catch (error) {
+      console.error('Failed to check health:', error)
+    } finally {
+      this._loadingHealth = false
+    }
+  }
+
+  private _renderHealthIndicator() {
+    if (this._loadingHealth) {
+      return html`<div class="health-loading"></div>`
+    }
+
+    if (!this._health) return ''
+
+    const statusClass = `health-${this._health.status}`
+    const statusText = this._getHealthStatusText()
+
+    return html`
+      <div class="health-indicator ${statusClass}">
+        <div class="health-tooltip">
+          ${statusText}
+        </div>
+      </div>
+    `
+  }
+
+  private _getHealthStatusText(): string {
+    if (!this._health) return ''
+
+    switch (this._health.status) {
+      case 'healthy':
+        return `✅ Healthy (${this._health.response_time_ms}ms)`
+      case 'broken':
+        return `❌ Broken: ${this._health.error || 'HTTP ' + this._health.status_code}`
+      case 'slow':
+        return `⚠️ Slow (${this._health.response_time_ms}ms)`
+      case 'redirect':
+        return `🔄 Redirects to: ${this._health.redirect_url || 'unknown'}`
+      case 'unknown':
+        return `❓ Unknown status`
+      default:
+        return this._health.status
+    }
+  }
 
   render() {
     const createdDate = new Date(this.bookmark.created_at)
@@ -200,6 +374,7 @@ export class BookmarkItem extends LitElement {
 
     return html`
       <div class="bookmark-card">
+        ${this._renderHealthIndicator()}
         <div class="bookmark-header">
           ${this.bookmark.favicon_url ? html`
             <img class="favicon" src="${this.bookmark.favicon_url}" alt="Favicon" />
@@ -241,6 +416,13 @@ export class BookmarkItem extends LitElement {
               @click=${this._handleEdit}
               title="Edit bookmark">
               ✏️
+            </button>
+            <button 
+              class="action-button health-check-button"
+              @click=${this._checkHealthNow}
+              title="Check health now"
+              ?disabled=${this._loadingHealth}>
+              🔗
             </button>
             <button 
               class="action-button delete-button"

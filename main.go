@@ -14,6 +14,7 @@ import (
 	"torimemo/internal/db"
 	"torimemo/internal/handlers"
 	"torimemo/internal/logger"
+	"torimemo/internal/services"
 	"torimemo/internal/middleware"
 )
 
@@ -51,6 +52,10 @@ func main() {
 	advancedSearchHandler := handlers.NewAdvancedSearchHandler(bookmarkRepo)
 	learningHandler := handlers.NewLearningHandler(bookmarkRepo, learningRepo)
 	importHandler := handlers.NewImportHandler(bookmarkRepo)
+	
+	// Initialize health checker service
+	healthChecker := services.NewHealthChecker(bookmarkRepo)
+	healthHandler := handlers.NewHealthHandler(healthChecker)
 
 	// Initialize logger
 	logLevel := os.Getenv("LOG_LEVEL")
@@ -92,6 +97,7 @@ func main() {
 	mux.Handle("/api/learning", learningHandler)
 	mux.Handle("/api/learning/", learningHandler)
 	importHandler.RegisterRoutes(mux)
+	healthHandler.RegisterRoutes(mux)
 	mux.HandleFunc("/api/health", handleHealth)
 	mux.HandleFunc("/api/stats", handleStats(database))
 
@@ -157,6 +163,11 @@ func main() {
 	fmt.Printf("🔍 API: http://localhost:%s/api/health\n", port)
 	
 	logger.Info("Server ready to accept connections")
+	
+	// Start health checker service
+	healthChecker.Start()
+	defer healthChecker.Stop()
+	
 	log.Fatal(http.ListenAndServe(":"+port, handler))
 }
 

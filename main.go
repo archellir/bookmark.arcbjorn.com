@@ -58,6 +58,7 @@ func main() {
 	folderHandler := handlers.NewFolderHandler(folderRepo, bookmarkRepo)
 	duplicateHandler := handlers.NewDuplicateHandler(bookmarkRepo)
 	authHandler := handlers.NewAuthHandler(userRepo)
+	monitoringHandler := handlers.NewMonitoringHandler(userRepo, database)
 	
 	// Initialize health checker service
 	healthChecker := services.NewHealthChecker(bookmarkRepo)
@@ -110,6 +111,7 @@ func main() {
 	folderHandler.RegisterRoutes(mux)
 	duplicateHandler.RegisterRoutes(mux)
 	authHandler.RegisterRoutes(mux)
+	monitoringHandler.RegisterRoutes(mux)
 	mux.HandleFunc("/api/health", handleHealth)
 	mux.HandleFunc("/api/stats", handleStats(database))
 
@@ -166,8 +168,13 @@ func main() {
 		}))
 	})
 
-	// Apply middleware
-	handler := middleware.LoggingMiddleware(middleware.CORSMiddleware(mux))
+	// Initialize auth middleware
+	authMiddleware := middleware.NewAuthMiddleware(userRepo)
+	
+	// Apply middleware with optional auth for monitoring endpoints
+	corsHandler := middleware.CORSMiddleware(mux)
+	optionalAuthHandler := authMiddleware.OptionalAuth(corsHandler)
+	handler := middleware.LoggingMiddleware(optionalAuthHandler)
 
 	fmt.Printf("🚀 Torimemo server starting on port %s\n", port)
 	fmt.Printf("📊 Database: %s\n", dbPath)

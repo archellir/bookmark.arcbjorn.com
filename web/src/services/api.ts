@@ -247,7 +247,7 @@ class ApiService {
   }
 
   // Folders
-  async getFolders(parentId?: number): Promise<{ folders: Folder[]; count: number }> {
+  async getFolders(parentId?: number): Promise<{ folders: ExtendedFolder[]; count: number }> {
     const searchParams = new URLSearchParams()
     if (parentId) searchParams.set('parent_id', parentId.toString())
     
@@ -259,18 +259,18 @@ class ApiService {
     return this.request('/folders/tree')
   }
 
-  async getFolder(id: number): Promise<Folder> {
+  async getFolder(id: number): Promise<ExtendedFolder> {
     return this.request(`/folders/${id}`)
   }
 
-  async createFolder(data: CreateFolderRequest): Promise<Folder> {
+  async createFolder(data: CreateFolderRequest): Promise<ExtendedFolder> {
     return this.request('/folders', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
-  async updateFolder(id: number, data: UpdateFolderRequest): Promise<Folder> {
+  async updateFolder(id: number, data: UpdateFolderRequest): Promise<ExtendedFolder> {
     return this.request(`/folders/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -283,7 +283,7 @@ class ApiService {
     })
   }
 
-  async getBookmarkFolders(bookmarkId: number): Promise<{ folders: Folder[]; count: number }> {
+  async getBookmarkFolders(bookmarkId: number): Promise<{ folders: ExtendedFolder[]; count: number }> {
     return this.request(`/folders/bookmark/${bookmarkId}`)
   }
 

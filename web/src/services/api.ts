@@ -234,6 +234,31 @@ class ApiService {
       body: JSON.stringify(data),
     })
   }
+
+  // Analytics
+  async getAnalytics(): Promise<any> {
+    return this.request('/analytics')
+  }
+
+  // Advanced Search
+  async advancedSearch(params: {
+    query?: string
+    tags?: string[]
+    exclude_tags?: string[]
+    domain?: string
+    favorites_only?: boolean
+    date_from?: string
+    date_to?: string
+    sort_by?: string
+    sort_order?: string
+    page?: number
+    limit?: number
+  }): Promise<any> {
+    return this.request('/search/advanced', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    })
+  }
 }
 
 export const apiService = new ApiService()

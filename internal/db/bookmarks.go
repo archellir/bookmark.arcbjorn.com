@@ -114,6 +114,16 @@ func (r *BookmarkRepository) GetByURL(url string) (*models.Bookmark, error) {
 	return bookmark, nil
 }
 
+// GetDB returns the underlying database connection
+func (r *BookmarkRepository) GetDB() *DB {
+	return r.db
+}
+
+// GetBookmarkTags is a public method to get tags for a bookmark
+func (r *BookmarkRepository) GetBookmarkTags(bookmarkID int) ([]models.Tag, error) {
+	return r.getBookmarkTags(bookmarkID)
+}
+
 // List retrieves bookmarks with pagination and filtering
 func (r *BookmarkRepository) List(page, limit int, searchQuery, tagFilter string, favoritesOnly bool) (*models.BookmarkListResponse, error) {
 	offset := (page - 1) * limit

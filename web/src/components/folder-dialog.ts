@@ -13,7 +13,7 @@ export class FolderDialog extends LitElement {
   @state() private _color = '#666666'
   @state() private _icon = '📁'
   @state() private _loading = false
-  @state() private _availableFolders: Folder[] = []
+  @state() private _availableFolders: ExtendedFolder[] = []
 
   static styles = css`
     :host {
@@ -381,8 +381,8 @@ export class FolderDialog extends LitElement {
       // Editing existing folder
       this._name = this.folder.name
       this._description = this.folder.description || ''
-      this._color = this.folder.color
-      this._icon = this.folder.icon
+      this._color = this.folder.color || '#666666'
+      this._icon = this.folder.icon || '📁'
     } else {
       // Creating new folder
       this._name = ''
@@ -451,7 +451,7 @@ export class FolderDialog extends LitElement {
     this.dispatchEvent(new CustomEvent('dialog-close'))
   }
 
-  private _dispatchSuccess(message: string, folder: Folder) {
+  private _dispatchSuccess(message: string, folder: ExtendedFolder) {
     this.dispatchEvent(new CustomEvent('folder-saved', {
       detail: { folder, message },
       bubbles: true

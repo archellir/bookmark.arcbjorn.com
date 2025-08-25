@@ -1,12 +1,18 @@
 import { LitElement, html, css } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
+import type { Bookmark } from '../services/api.ts'
 import './app-header.ts'
 import './bookmark-list.ts'
 import './bookmark-dialog.ts'
+import './tag-cloud.ts'
 
 @customElement('app-root')
 export class AppRoot extends LitElement {
   @state() private _showDialog = false
+  @state() private _editBookmark: Bookmark | null = null
+  @state() private _searchQuery = ''
+  @state() private _tagFilter = ''
+  @state() private _favoritesOnly = false
 
   static styles = css`
     :host {
@@ -43,6 +49,49 @@ export class AppRoot extends LitElement {
       border-radius: 0.5rem;
       padding: 1.5rem;
       backdrop-filter: blur(10px);
+      height: fit-content;
+    }
+
+    .sidebar-title {
+      color: #00ffff;
+      font-size: 1.25rem;
+      font-weight: bold;
+      margin-bottom: 1rem;
+      text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+    }
+
+    .filter-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .filter-label {
+      display: block;
+      color: #a0a0a0;
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.5rem;
+    }
+
+    .filter-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 0.25rem;
+      transition: background-color 0.3s ease;
+    }
+
+    .filter-toggle:hover {
+      background: rgba(0, 255, 255, 0.1);
+    }
+
+    .filter-toggle input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #00ffff;
     }
 
     .content {
@@ -68,31 +117,98 @@ export class AppRoot extends LitElement {
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
+
+    .quick-actions {
+      background: rgba(255, 255, 0, 0.05);
+      border: 1px solid rgba(255, 255, 0, 0.2);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .quick-actions-title {
+      color: #ffff00;
+      font-size: 1rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+
+    .quick-actions-text {
+      color: #a0a0a0;
+      font-size: 0.875rem;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 768px) {
+      .main-content {
+        grid-template-columns: 1fr;
+      }
+      
+      .sidebar {
+        order: 2;
+      }
+      
+      .content {
+        order: 1;
+      }
+    }
   `
 
   render() {
     return html`
       <div class="container">
-        <app-header @add-bookmark=${this._handleAddBookmark}></app-header>
+        <app-header 
+          @search=${this._handleSearch}
+          @add-bookmark=${this._handleAddBookmark}>
+        </app-header>
         
         <div class="main-content">
           <aside class="sidebar">
-            <h3 class="neon-cyan">Filters</h3>
-            <p class="text-gray-400">Tags and filters will go here</p>
+            <h3 class="sidebar-title">Filters</h3>
+            
+            <div class="filter-group">
+              <label class="filter-label">Quick Filters</label>
+              <label class="filter-toggle">
+                <input 
+                  type="checkbox" 
+                  .checked=${this._favoritesOnly}
+                  @change=${this._handleFavoritesToggle}
+                />
+                <span>⭐ Favorites Only</span>
+              </label>
+            </div>
+
+            <div class="filter-group">
+              <label class="filter-label">Tags</label>
+              <tag-cloud 
+                .selectedTag=${this._tagFilter}
+                @tag-selected=${this._handleTagSelected}
+                @tag-cleared=${this._handleTagCleared}>
+              </tag-cloud>
+            </div>
+
+            <div class="quick-actions">
+              <div class="quick-actions-title">💡 Pro Tip</div>
+              <div class="quick-actions-text">
+                Use the search box to find bookmarks instantly, or click the "+" button to add new ones with AI-powered tagging!
+              </div>
+            </div>
           </aside>
           
           <main class="content">
-            <div class="welcome-message">
-              <h1 class="welcome-title">とりメモ (Torimemo)</h1>
-              <p>Your cyberpunk bookmark manager is ready!</p>
-              <p class="text-sm">Drop a link and watch the AI magic happen ✨</p>
-            </div>
-            <bookmark-list></bookmark-list>
+            <bookmark-list 
+              .searchQuery=${this._searchQuery}
+              .tagFilter=${this._tagFilter}
+              .favoritesOnly=${this._favoritesOnly}
+              @edit-bookmark=${this._handleEditBookmark}
+              @bookmark-deleted=${this._handleBookmarkDeleted}>
+            </bookmark-list>
           </main>
         </div>
         
         ${this._showDialog ? html`
           <bookmark-dialog 
+            .editBookmark=${this._editBookmark}
             @close=${this._handleCloseDialog}
             @save=${this._handleSaveBookmark}>
           </bookmark-dialog>
@@ -101,17 +217,61 @@ export class AppRoot extends LitElement {
     `
   }
 
+  private _handleSearch(e: CustomEvent) {
+    this._searchQuery = e.detail.query || ''
+  }
+
+  private _handleFavoritesToggle(e: Event) {
+    const checkbox = e.target as HTMLInputElement
+    this._favoritesOnly = checkbox.checked
+  }
+
   private _handleAddBookmark() {
+    this._editBookmark = null
+    this._showDialog = true
+  }
+
+  private _handleEditBookmark(e: CustomEvent) {
+    this._editBookmark = e.detail.bookmark
     this._showDialog = true
   }
 
   private _handleCloseDialog() {
     this._showDialog = false
+    this._editBookmark = null
   }
 
   private _handleSaveBookmark(e: CustomEvent) {
-    console.log('Save bookmark:', e.detail)
+    const { bookmark, isEdit } = e.detail
+    
+    // Close dialog
     this._showDialog = false
-    // TODO: Save to API
+    this._editBookmark = null
+    
+    // Force bookmark list to refresh by dispatching an event
+    this.shadowRoot?.querySelector('bookmark-list')?.dispatchEvent(
+      new CustomEvent('refresh-needed')
+    )
+    
+    // Refresh tag cloud to update counts
+    const tagCloud = this.shadowRoot?.querySelector('tag-cloud') as any
+    tagCloud?.loadTags()
+    
+    // Could show a success toast here
+    console.log(isEdit ? 'Bookmark updated:' : 'Bookmark created:', bookmark)
+  }
+
+  private _handleTagSelected(e: CustomEvent) {
+    this._tagFilter = e.detail.tag
+  }
+
+  private _handleTagCleared() {
+    this._tagFilter = ''
+  }
+
+  private _handleBookmarkDeleted() {
+    // Refresh tag cloud when bookmark is deleted
+    const tagCloud = this.shadowRoot?.querySelector('tag-cloud') as any
+    tagCloud?.loadTags()
   }
 }

@@ -24,6 +24,7 @@ export class BookmarkList extends LitElement {
   @property() searchQuery = ''
   @property() tagFilter = ''
   @property() favoritesOnly = false
+  @property() advancedFilters: any = null
 
   static styles = css`
     :host {
@@ -343,7 +344,8 @@ export class BookmarkList extends LitElement {
   updated(changedProperties: Map<string, any>) {
     if (changedProperties.has('searchQuery') || 
         changedProperties.has('tagFilter') || 
-        changedProperties.has('favoritesOnly')) {
+        changedProperties.has('favoritesOnly') ||
+        changedProperties.has('advancedFilters')) {
       this.loadBookmarks(true) // Reset to first page
     }
   }
@@ -360,8 +362,12 @@ export class BookmarkList extends LitElement {
     try {
       let response: BookmarkListResponse
 
-      // Use full-text search if search query exists
-      if (this.searchQuery && this.searchQuery.trim()) {
+      // Use advanced search if filters are present
+      if (this.advancedFilters) {
+        const searchResponse = await this._performAdvancedSearch()
+        response = searchResponse
+      } else if (this.searchQuery && this.searchQuery.trim()) {
+        // Use full-text search if search query exists
         const searchResponse = await apiService.searchBookmarks(this.searchQuery, 20)
         // Convert SearchResult[] to BookmarkListResponse format
         response = {
@@ -620,6 +626,49 @@ export class BookmarkList extends LitElement {
       }
     } catch (error) {
       console.error('Failed to load tags:', error)
+    }
+  }
+
+  // Perform advanced search using backend API
+  private async _performAdvancedSearch(): Promise<BookmarkListResponse> {
+    const searchRequest = {
+      query: this.advancedFilters.query || '',
+      tags: this.advancedFilters.tags || [],
+      exclude_tags: this.advancedFilters.excludeTags || [],
+      domain: this.advancedFilters.domainFilter || '',
+      favorites_only: this.advancedFilters.favoritesOnly || false,
+      date_from: this.advancedFilters.dateRange?.start || null,
+      date_to: this.advancedFilters.dateRange?.end || null,
+      sort_by: this.advancedFilters.sortBy || 'created_at',
+      sort_order: this.advancedFilters.sortOrder || 'desc',
+      page: this._stats.page,
+      limit: 20
+    }
+
+    const response = await fetch('/api/search/advanced', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(searchRequest)
+    })
+
+    if (!response.ok) {
+      throw new Error(`Advanced search failed: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    
+    // Convert to BookmarkListResponse format
+    return {
+      bookmarks: data.bookmarks,
+      total: data.total,
+      page: data.page,
+      limit: data.limit,
+      has_more: data.has_more,
+      total_pages: Math.ceil(data.total / data.limit),
+      tag_count: 0, // Advanced search doesn't provide tag count
+      favorite_count: data.bookmarks.filter((b: any) => b.is_favorite).length
     }
   }
 }

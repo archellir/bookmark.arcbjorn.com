@@ -8,6 +8,7 @@ import './tag-cloud.ts'
 import './theme-toggle.ts'
 import './import-dialog.ts'
 import './export-dialog.ts'
+import './advanced-search.ts'
 
 @customElement('app-root')
 export class AppRoot extends LitElement {
@@ -19,6 +20,9 @@ export class AppRoot extends LitElement {
   @state() private _showHelp = false
   @state() private _showImportDialog = false
   @state() private _showExportDialog = false
+  @state() private _availableTags: string[] = []
+  @state() private _availableDomains: string[] = []
+  @state() private _advancedFilters: any = null
 
   connectedCallback() {
     super.connectedCallback();
@@ -38,6 +42,9 @@ export class AppRoot extends LitElement {
     
     // Setup keyboard navigation
     this._setupKeyboardNavigation();
+    
+    // Load data for advanced search
+    this._loadAvailableTagsAndDomains();
   }
 
   disconnectedCallback() {
@@ -462,10 +469,17 @@ export class AppRoot extends LitElement {
           </aside>
           
           <main class="content">
+            <advanced-search
+              .availableTags=${this._availableTags}
+              .availableDomains=${this._availableDomains}
+              @filters-changed=${this._handleAdvancedFiltersChanged}>
+            </advanced-search>
+            
             <bookmark-list 
-              .searchQuery=${this._searchQuery}
-              .tagFilter=${this._tagFilter}
-              .favoritesOnly=${this._favoritesOnly}
+              .searchQuery=${this._advancedFilters ? '' : this._searchQuery}
+              .tagFilter=${this._advancedFilters ? '' : this._tagFilter}
+              .favoritesOnly=${this._advancedFilters ? false : this._favoritesOnly}
+              .advancedFilters=${this._advancedFilters}
               @edit-bookmark=${this._handleEditBookmark}
               @bookmark-deleted=${this._handleBookmarkDeleted}>
             </bookmark-list>
@@ -713,6 +727,14 @@ export class AppRoot extends LitElement {
     this._showExportDialog = false
   }
 
+  private _handleAdvancedFiltersChanged(e: CustomEvent) {
+    this._advancedFilters = e.detail.filters
+    // Clear basic search when using advanced search
+    this._searchQuery = ''
+    this._tagFilter = ''
+    this._favoritesOnly = false
+  }
+
   private _handleImportSuccess(e: CustomEvent) {
     // Close import dialog
     this._showImportDialog = false
@@ -724,6 +746,38 @@ export class AppRoot extends LitElement {
     const tagCloud = this.shadowRoot?.querySelector('tag-cloud') as any
     tagCloud?.loadTags()
     
+    // Refresh available tags and domains for advanced search
+    this._loadAvailableTagsAndDomains()
+    
     console.log('Import completed:', e.detail)
+  }
+
+  private async _loadAvailableTagsAndDomains() {
+    try {
+      // Load available tags
+      const tagsResponse = await fetch('/api/tags')
+      if (tagsResponse.ok) {
+        const tags = await tagsResponse.json()
+        this._availableTags = tags.map((tag: any) => tag.name)
+      }
+
+      // Load available domains from bookmarks
+      const bookmarksResponse = await fetch('/api/bookmarks?limit=1000')
+      if (bookmarksResponse.ok) {
+        const data = await bookmarksResponse.json()
+        const domains = new Set<string>()
+        data.bookmarks.forEach((bookmark: any) => {
+          try {
+            const url = new URL(bookmark.url)
+            domains.add(url.hostname)
+          } catch {
+            // Skip invalid URLs
+          }
+        })
+        this._availableDomains = Array.from(domains).sort()
+      }
+    } catch (error) {
+      console.error('Failed to load tags and domains:', error)
+    }
   }
 }

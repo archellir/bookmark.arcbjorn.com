@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 
@@ -158,6 +159,14 @@ func GetUserFromContext(r *http.Request) (*models.User, bool) {
 func GetUserIDFromContext(r *http.Request) (int, bool) {
 	userID, ok := r.Context().Value(UserIDKey).(int)
 	return userID, ok
+}
+
+// GetUserIDStringFromContext returns user ID as string for compatibility with monitoring
+func GetUserIDStringFromContext(ctx context.Context) string {
+	if userID, ok := ctx.Value(UserIDKey).(int); ok {
+		return fmt.Sprintf("%d", userID)
+	}
+	return ""
 }
 
 // GetClaimsFromContext gets JWT claims from request context

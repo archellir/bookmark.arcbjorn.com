@@ -5,6 +5,7 @@ import './app-header.ts'
 import './bookmark-list.ts'
 import './bookmark-dialog.ts'
 import './tag-cloud.ts'
+import './theme-toggle.ts'
 
 @customElement('app-root')
 export class AppRoot extends LitElement {
@@ -14,14 +15,46 @@ export class AppRoot extends LitElement {
   @state() private _tagFilter = ''
   @state() private _favoritesOnly = false
 
+  connectedCallback() {
+    super.connectedCallback();
+    // Initialize theme manager to apply theme classes
+    import('../services/theme.js').then(({ themeManager }) => {
+      const updateTheme = () => {
+        const theme = themeManager.getCurrentTheme();
+        const actualTheme = theme === 'auto' 
+          ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+          : theme;
+        this.className = actualTheme;
+      };
+      
+      updateTheme();
+      themeManager.subscribe(updateTheme);
+    });
+  }
+
   static styles = css`
     :host {
       display: block;
       min-height: 100vh;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Dark theme backgrounds (cyberpunk) */
+    :host(.dark) {
       background: 
         radial-gradient(circle at 20% 50%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
         radial-gradient(circle at 80% 20%, rgba(255, 0, 128, 0.1) 0%, transparent 50%),
         linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+    }
+
+    /* Light theme backgrounds */
+    :host(.light) {
+      background: 
+        radial-gradient(circle at 20% 50%, rgba(13, 110, 253, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(111, 66, 193, 0.05) 0%, transparent 50%),
+        linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
     }
 
     .container {
@@ -44,20 +77,27 @@ export class AppRoot extends LitElement {
     }
 
     .sidebar {
-      background: rgba(10, 10, 10, 0.8);
-      border: 1px solid rgba(0, 255, 255, 0.2);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
       border-radius: 0.5rem;
       padding: 1.5rem;
       backdrop-filter: blur(10px);
       height: fit-content;
+      box-shadow: var(--shadow-md);
     }
 
     .sidebar-title {
-      color: #00ffff;
+      color: var(--accent-primary);
       font-size: 1.25rem;
       font-weight: bold;
       margin-bottom: 1rem;
-      text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+      text-shadow: var(--shadow-sm);
+    }
+
+    .theme-container {
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
     }
 
     .filter-group {
@@ -66,7 +106,7 @@ export class AppRoot extends LitElement {
 
     .filter-label {
       display: block;
-      color: #a0a0a0;
+      color: var(--text-secondary);
       font-size: 0.875rem;
       font-weight: 500;
       text-transform: uppercase;
@@ -82,59 +122,61 @@ export class AppRoot extends LitElement {
       padding: 0.5rem;
       border-radius: 0.25rem;
       transition: background-color 0.3s ease;
+      color: var(--text-primary);
     }
 
     .filter-toggle:hover {
-      background: rgba(0, 255, 255, 0.1);
+      background: var(--bg-card-hover);
     }
 
     .filter-toggle input[type="checkbox"] {
       width: 16px;
       height: 16px;
-      accent-color: #00ffff;
+      accent-color: var(--accent-primary);
     }
 
     .content {
-      background: rgba(10, 10, 10, 0.8);
-      border: 1px solid rgba(255, 0, 128, 0.2);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
       border-radius: 0.5rem;
       padding: 1.5rem;
       backdrop-filter: blur(10px);
+      box-shadow: var(--shadow-md);
     }
 
     .welcome-message {
       text-align: center;
       padding: 3rem 1rem;
-      color: #a0a0a0;
+      color: var(--text-muted);
     }
 
     .welcome-title {
       font-size: 2rem;
       font-weight: bold;
       margin-bottom: 1rem;
-      background: linear-gradient(45deg, #00ffff, #ff0080);
+      background: linear-gradient(45deg, var(--accent-primary), var(--accent-secondary));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
 
     .quick-actions {
-      background: rgba(255, 255, 0, 0.05);
-      border: 1px solid rgba(255, 255, 0, 0.2);
+      background: rgba(var(--accent-warning), 0.05);
+      border: 1px solid rgba(var(--accent-warning), 0.2);
       border-radius: 0.5rem;
       padding: 1rem;
       margin-bottom: 1.5rem;
     }
 
     .quick-actions-title {
-      color: #ffff00;
+      color: var(--accent-warning);
       font-size: 1rem;
       font-weight: bold;
       margin-bottom: 0.5rem;
     }
 
     .quick-actions-text {
-      color: #a0a0a0;
+      color: var(--text-muted);
       font-size: 0.875rem;
       line-height: 1.4;
     }
@@ -164,6 +206,11 @@ export class AppRoot extends LitElement {
         
         <div class="main-content">
           <aside class="sidebar">
+            <div class="theme-container">
+              <label class="filter-label">Theme</label>
+              <theme-toggle></theme-toggle>
+            </div>
+            
             <h3 class="sidebar-title">Filters</h3>
             
             <div class="filter-group">

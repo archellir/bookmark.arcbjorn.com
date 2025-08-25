@@ -9,6 +9,8 @@ import './theme-toggle.ts'
 import './import-dialog.ts'
 import './export-dialog.ts'
 import './advanced-search.ts'
+import './folder-tree.ts'
+import './folder-dialog.ts'
 import { searchSuggestionsService } from '../services/search-suggestions.ts'
 import { archiveService } from '../services/archive.ts'
 
@@ -25,6 +27,10 @@ export class AppRoot extends LitElement {
   @state() private _availableTags: string[] = []
   @state() private _availableDomains: string[] = []
   @state() private _advancedFilters: any = null
+  @state() private _showFolderDialog = false
+  @state() private _editingFolder: any = null
+  @state() private _parentFolder: any = null
+  @state() private _selectedFolderId = -1
 
   connectedCallback() {
     super.connectedCallback();
@@ -462,6 +468,18 @@ export class AppRoot extends LitElement {
               </button>
             </div>
 
+            <div class="filter-group">
+              <label class="filter-label">Folders</label>
+              <folder-tree 
+                .allowSelection=${true}
+                .selectedFolderId=${this._selectedFolderId}
+                @folder-selected=${this._handleFolderSelected}
+                @folder-create=${this._handleFolderCreate}
+                @folder-edit=${this._handleFolderEdit}
+                @folder-delete=${this._handleFolderDelete}>
+              </folder-tree>
+            </div>
+
             <div class="quick-actions">
               <div class="quick-actions-title">💡 Pro Tip</div>
               <div class="quick-actions-text">
@@ -643,6 +661,16 @@ export class AppRoot extends LitElement {
             @close=${this._handleCloseExport}>
           </export-dialog>
         ` : ''}
+
+        ${this._showFolderDialog ? html`
+          <folder-dialog
+            .open=${this._showFolderDialog}
+            .folder=${this._editingFolder}
+            .parentFolder=${this._parentFolder}
+            @dialog-close=${this._handleCloseFolderDialog}
+            @folder-saved=${this._handleFolderSaved}>
+          </folder-dialog>
+        ` : ''}
       </div>
     `
   }
@@ -744,6 +772,57 @@ export class AppRoot extends LitElement {
 
   private _handleCloseExport() {
     this._showExportDialog = false
+  }
+
+  // Folder handlers
+  private _handleFolderSelected(e: CustomEvent) {
+    this._selectedFolderId = e.detail.folder.id
+    // TODO: Filter bookmarks by folder
+  }
+
+  private _handleFolderCreate(e: CustomEvent) {
+    this._editingFolder = null
+    this._parentFolder = e.detail?.parentFolder || null
+    this._showFolderDialog = true
+  }
+
+  private _handleFolderEdit(e: CustomEvent) {
+    this._editingFolder = e.detail.folder
+    this._parentFolder = null
+    this._showFolderDialog = true
+  }
+
+  private async _handleFolderDelete(e: CustomEvent) {
+    const folder = e.detail.folder
+    try {
+      // Import API service at the top if not already imported
+      const { apiService } = await import('../services/api.ts')
+      await apiService.deleteFolder(folder.id)
+      
+      // Refresh folder tree
+      const folderTree = this.shadowRoot?.querySelector('folder-tree') as any
+      if (folderTree) {
+        await folderTree.refresh()
+      }
+    } catch (error) {
+      console.error('Failed to delete folder:', error)
+    }
+  }
+
+  private _handleCloseFolderDialog() {
+    this._showFolderDialog = false
+    this._editingFolder = null
+    this._parentFolder = null
+  }
+
+  private async _handleFolderSaved(e: CustomEvent) {
+    console.log('Folder saved:', e.detail.folder)
+    
+    // Refresh folder tree
+    const folderTree = this.shadowRoot?.querySelector('folder-tree') as any
+    if (folderTree) {
+      await folderTree.refresh()
+    }
   }
 
   private _handleAdvancedFiltersChanged(e: CustomEvent) {

@@ -50,6 +50,7 @@ func main() {
 	analyticsHandler := handlers.NewAnalyticsHandler(bookmarkRepo, tagRepo, database)
 	advancedSearchHandler := handlers.NewAdvancedSearchHandler(bookmarkRepo)
 	learningHandler := handlers.NewLearningHandler(bookmarkRepo, learningRepo)
+	importHandler := handlers.NewImportHandler(bookmarkRepo)
 
 	// Initialize logger
 	logLevel := os.Getenv("LOG_LEVEL")
@@ -90,6 +91,7 @@ func main() {
 	mux.Handle("/api/search/advanced", advancedSearchHandler)
 	mux.Handle("/api/learning", learningHandler)
 	mux.Handle("/api/learning/", learningHandler)
+	importHandler.RegisterRoutes(mux)
 	mux.HandleFunc("/api/health", handleHealth)
 	mux.HandleFunc("/api/stats", handleStats(database))
 

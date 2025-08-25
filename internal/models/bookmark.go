@@ -15,6 +15,7 @@ type Bookmark struct {
 	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
 	IsFavorite  bool      `json:"is_favorite" db:"is_favorite"`
 	Tags        []Tag     `json:"tags,omitempty"`
+	TagNames    []string  `json:"-"` // Temporary field for imports, not serialized
 }
 
 // CreateBookmarkRequest represents the request to create a new bookmark

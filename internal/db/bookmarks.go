@@ -99,7 +99,7 @@ func (r *BookmarkRepository) GetByURL(url string) (*models.Bookmark, error) {
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("bookmark not found")
+			return nil, nil // Not found, return nil without error
 		}
 		return nil, fmt.Errorf("failed to get bookmark: %w", err)
 	}
@@ -123,6 +123,7 @@ func (r *BookmarkRepository) GetDB() *DB {
 func (r *BookmarkRepository) GetBookmarkTags(bookmarkID int) ([]models.Tag, error) {
 	return r.getBookmarkTags(bookmarkID)
 }
+
 
 // List retrieves bookmarks with pagination and filtering
 func (r *BookmarkRepository) List(page, limit int, searchQuery, tagFilter string, favoritesOnly bool) (*models.BookmarkListResponse, error) {

@@ -6,6 +6,7 @@ import './bookmark-list.ts'
 import './bookmark-dialog.ts'
 import './tag-cloud.ts'
 import './theme-toggle.ts'
+import './import-dialog.ts'
 
 @customElement('app-root')
 export class AppRoot extends LitElement {
@@ -15,6 +16,7 @@ export class AppRoot extends LitElement {
   @state() private _tagFilter = ''
   @state() private _favoritesOnly = false
   @state() private _showHelp = false
+  @state() private _showImportDialog = false
 
   connectedCallback() {
     super.connectedCallback();
@@ -67,6 +69,8 @@ export class AppRoot extends LitElement {
         this._handleCloseDialog();
       } else if (this._showHelp) {
         this._showHelp = false;
+      } else if (this._showImportDialog) {
+        this._showImportDialog = false;
       } else {
         this._clearSearch();
       }
@@ -82,6 +86,10 @@ export class AppRoot extends LitElement {
       // Show help (? or Cmd/Ctrl+H)
       e.preventDefault();
       this._showHelp = !this._showHelp;
+    } else if (e.key === 'i' && (e.metaKey || e.ctrlKey)) {
+      // Show import dialog (Cmd/Ctrl+I)
+      e.preventDefault();
+      this._showImportDialog = true;
     }
   }
 
@@ -210,6 +218,27 @@ export class AppRoot extends LitElement {
       width: 16px;
       height: 16px;
       accent-color: var(--accent-primary);
+    }
+
+    .import-button {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--accent-secondary);
+      color: var(--accent-secondary);
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .import-button:hover {
+      background: var(--accent-secondary);
+      color: var(--bg-primary);
+      box-shadow: var(--shadow-md);
     }
 
     .content {
@@ -410,6 +439,13 @@ export class AppRoot extends LitElement {
               </tag-cloud>
             </div>
 
+            <div class="filter-group">
+              <label class="filter-label">Actions</label>
+              <button class="import-button" @click=${this._handleShowImport}>
+                📥 Import Bookmarks
+              </button>
+            </div>
+
             <div class="quick-actions">
               <div class="quick-actions-title">💡 Pro Tip</div>
               <div class="quick-actions-text">
@@ -460,6 +496,13 @@ export class AppRoot extends LitElement {
                       <span class="help-key">N</span>
                     </div>
                     <span class="help-description">Add new bookmark</span>
+                  </div>
+                  <div class="help-shortcut">
+                    <div class="help-keys">
+                      <span class="help-key">Cmd</span>
+                      <span class="help-key">I</span>
+                    </div>
+                    <span class="help-description">Import bookmarks</span>
                   </div>
                   <div class="help-shortcut">
                     <div class="help-keys">
@@ -564,6 +607,13 @@ export class AppRoot extends LitElement {
             </div>
           </div>
         ` : ''}
+
+        ${this._showImportDialog ? html`
+          <import-dialog 
+            @close=${this._handleCloseImport}
+            @import-success=${this._handleImportSuccess}>
+          </import-dialog>
+        ` : ''}
       </div>
     `
   }
@@ -632,5 +682,27 @@ export class AppRoot extends LitElement {
 
   private _closeHelp() {
     this._showHelp = false
+  }
+
+  private _handleShowImport() {
+    this._showImportDialog = true
+  }
+
+  private _handleCloseImport() {
+    this._showImportDialog = false
+  }
+
+  private _handleImportSuccess(e: CustomEvent) {
+    // Close import dialog
+    this._showImportDialog = false
+    
+    // Refresh bookmark list and tag cloud
+    const bookmarkList = this.shadowRoot?.querySelector('bookmark-list') as any
+    bookmarkList?.loadBookmarks(true)
+    
+    const tagCloud = this.shadowRoot?.querySelector('tag-cloud') as any
+    tagCloud?.loadTags()
+    
+    console.log('Import completed:', e.detail)
   }
 }

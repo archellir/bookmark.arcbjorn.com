@@ -29,11 +29,11 @@ func (r *BookmarkRepository) Create(req *models.CreateBookmarkRequest, userID in
 
 	// Insert bookmark
 	query := `
-		INSERT INTO bookmarks (title, url, description, user_id, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?)
+		INSERT INTO bookmarks (title, url, description, favicon_url, user_id, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
 	`
 	now := time.Now()
-	result, err := tx.Exec(query, req.Title, req.URL, req.Description, userID, now, now)
+	result, err := tx.Exec(query, req.Title, req.URL, req.Description, req.FaviconURL, userID, now, now)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create bookmark: %w", err)
 	}

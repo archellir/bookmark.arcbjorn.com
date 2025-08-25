@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
 import type { Bookmark } from '../services/api.ts'
+import { archiveService, type ArchivedContent } from '../services/archive.ts'
 
 export interface BookmarkHealth {
   id: number
@@ -18,8 +19,11 @@ export class BookmarkItem extends LitElement {
   @property({ type: Object }) bookmark!: Bookmark
   @property({ type: Boolean }) isSelected = false
   @property({ type: Boolean }) selectionMode = false
+  @property({ type: String }) searchSnippet = ''
   @state() private _health: BookmarkHealth | null = null
   @state() private _loadingHealth = false
+  @state() private _archivedContent: ArchivedContent | null = null
+  @state() private _loadingArchive = false
 
   static styles = css`
     :host {
@@ -176,6 +180,28 @@ export class BookmarkItem extends LitElement {
       overflow: hidden;
     }
 
+    .search-snippet {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      line-height: 1.4;
+      margin: 0.75rem 0;
+      padding: 0.75rem;
+      background: rgba(var(--accent-primary), 0.05);
+      border: 1px solid rgba(var(--accent-primary), 0.15);
+      border-radius: 0.5rem;
+      font-style: italic;
+    }
+
+    .search-snippet mark {
+      background: var(--accent-warning);
+      color: var(--bg-primary);
+      padding: 0.15rem 0.3rem;
+      border-radius: 0.25rem;
+      font-weight: bold;
+      font-style: normal;
+      box-shadow: var(--shadow-sm);
+    }
+
     .bookmark-tags {
       display: flex;
       flex-wrap: wrap;
@@ -325,6 +351,27 @@ export class BookmarkItem extends LitElement {
       animation: spin 1s linear infinite;
     }
 
+    .archive-indicator {
+      position: absolute;
+      top: 0.5rem;
+      right: 2rem;
+      font-size: 0.75rem;
+      opacity: 0.7;
+      transition: all 0.3s ease;
+    }
+
+    .archive-cached {
+      color: var(--accent-success);
+    }
+
+    .archive-failed {
+      color: var(--accent-danger);
+    }
+
+    .archive-loading {
+      animation: spin 1s linear infinite;
+    }
+
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
@@ -334,6 +381,7 @@ export class BookmarkItem extends LitElement {
   connectedCallback() {
     super.connectedCallback()
     this._loadHealth()
+    this._loadArchiveStatus()
   }
 
   private async _loadHealth() {
@@ -363,6 +411,27 @@ export class BookmarkItem extends LitElement {
       console.error('Failed to check health:', error)
     } finally {
       this._loadingHealth = false
+    }
+  }
+
+  private async _loadArchiveStatus() {
+    try {
+      this._archivedContent = await archiveService.getCachedContent(this.bookmark.id)
+    } catch (error) {
+      console.debug('Failed to load archive status:', error)
+    }
+  }
+
+  private async _archiveBookmark() {
+    if (this._loadingArchive) return
+    
+    this._loadingArchive = true
+    try {
+      this._archivedContent = await archiveService.archiveBookmark(this.bookmark)
+    } catch (error) {
+      console.error('Failed to archive bookmark:', error)
+    } finally {
+      this._loadingArchive = false
     }
   }
 
@@ -404,6 +473,26 @@ export class BookmarkItem extends LitElement {
     }
   }
 
+  private _renderArchiveIndicator() {
+    if (this._loadingArchive) {
+      return html`<div class="archive-indicator archive-loading">📦</div>`
+    }
+
+    if (!this._archivedContent) return ''
+
+    const statusClass = `archive-${this._archivedContent.status}`
+    const statusIcon = this._archivedContent.status === 'cached' ? '📦' : '⚠️'
+    const statusText = this._archivedContent.status === 'cached' 
+      ? `Cached (${Math.round(this._archivedContent.size / 1024)}KB)`
+      : 'Archive failed'
+
+    return html`
+      <div class="archive-indicator ${statusClass}" title="${statusText}">
+        ${statusIcon}
+      </div>
+    `
+  }
+
   render() {
     const createdDate = new Date(this.bookmark.created_at)
     const formattedDate = new Intl.DateTimeFormat('en-US', {
@@ -422,6 +511,7 @@ export class BookmarkItem extends LitElement {
           ${this.isSelected ? '✓' : ''}
         </div>
         ${this._renderHealthIndicator()}
+        ${this._renderArchiveIndicator()}
         <div class="bookmark-header">
           ${this.bookmark.favicon_url ? html`
             <img class="favicon" src="${this.bookmark.favicon_url}" alt="Favicon" />
@@ -437,7 +527,9 @@ export class BookmarkItem extends LitElement {
           </div>
         </div>
 
-        ${this.bookmark.description ? html`
+        ${this.searchSnippet ? html`
+          <div class="search-snippet" .innerHTML=${this.searchSnippet}></div>
+        ` : this.bookmark.description ? html`
           <div class="bookmark-description">${this.bookmark.description}</div>
         ` : ''}
 
@@ -470,6 +562,13 @@ export class BookmarkItem extends LitElement {
               title="Check health now"
               ?disabled=${this._loadingHealth}>
               🔗
+            </button>
+            <button 
+              class="action-button archive-button"
+              @click=${this._archiveBookmark}
+              title="Archive content for offline access"
+              ?disabled=${this._loadingArchive}>
+              ${this._archivedContent?.status === 'cached' ? '📦' : '📥'}
             </button>
             <button 
               class="action-button delete-button"

@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
-	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
@@ -14,7 +13,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-//go:embed ../../migrations/*.sql
+//go:embed migrations/*.sql
 var migrationsFS embed.FS
 
 // DB wraps the sql.DB connection with helper methods

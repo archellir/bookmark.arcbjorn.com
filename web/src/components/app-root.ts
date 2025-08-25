@@ -1,7 +1,7 @@
 import { LitElement, html, css } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
 import type { Bookmark } from '../services/api.ts'
-import './app-header.ts'
+import './app-header-new.ts'
 import './bookmark-list.ts'
 import './bookmark-dialog.ts'
 import './tag-cloud.ts'
@@ -111,7 +111,7 @@ export class AppRoot extends LitElement {
   }
 
   private _focusSearch() {
-    const searchInput = this.shadowRoot?.querySelector('app-header')?.shadowRoot?.querySelector('.search-input') as HTMLInputElement;
+    const searchInput = this.shadowRoot?.querySelector('app-header-new')?.shadowRoot?.querySelector('.search-input') as HTMLInputElement;
     if (searchInput) {
       searchInput.focus();
       searchInput.select();
@@ -119,7 +119,7 @@ export class AppRoot extends LitElement {
   }
 
   private _clearSearch() {
-    const searchInput = this.shadowRoot?.querySelector('app-header')?.shadowRoot?.querySelector('.search-input') as HTMLInputElement;
+    const searchInput = this.shadowRoot?.querySelector('app-header-new')?.shadowRoot?.querySelector('.search-input') as HTMLInputElement;
     if (searchInput) {
       searchInput.value = '';
       searchInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -399,17 +399,36 @@ export class AppRoot extends LitElement {
       width: 100%;
     }
 
+    /* Mobile responsiveness */
+    @media (max-width: 1024px) {
+      .container {
+        padding: 1.5rem;
+      }
+      
+      .main-content {
+        gap: 1.5rem;
+      }
+    }
+
     @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+      
       .main-content {
         grid-template-columns: 1fr;
+        gap: 1rem;
       }
       
       .sidebar {
         order: 2;
+        padding: 1rem;
+        margin-top: 0;
       }
       
       .content {
         order: 1;
+        padding: 1rem;
       }
 
       .help-shortcut {
@@ -417,16 +436,107 @@ export class AppRoot extends LitElement {
         align-items: flex-start;
         gap: 0.5rem;
       }
+      
+      .help-panel {
+        padding: 1.5rem;
+        width: 95%;
+        max-height: 85vh;
+      }
+      
+      .help-title {
+        font-size: 1.25rem;
+      }
+      
+      .quick-actions {
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+      }
+      
+      .filter-group {
+        margin-bottom: 1rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 0.75rem;
+      }
+      
+      .main-content {
+        gap: 0.75rem;
+        margin-top: 1rem;
+      }
+      
+      .sidebar {
+        padding: 0.75rem;
+        border-radius: 0.375rem;
+      }
+      
+      .content {
+        padding: 0.75rem;
+        border-radius: 0.375rem;
+      }
+      
+      .sidebar-title {
+        font-size: 1.125rem;
+        margin-bottom: 0.75rem;
+      }
+      
+      .filter-toggle {
+        padding: 0.375rem;
+        font-size: 0.9rem;
+      }
+      
+      .import-button,
+      .export-button {
+        padding: 0.625rem 0.75rem;
+        font-size: 0.8rem;
+      }
+      
+      .welcome-title {
+        font-size: 1.5rem;
+      }
+      
+      .welcome-message {
+        padding: 2rem 0.75rem;
+      }
+      
+      .help-panel {
+        padding: 1rem;
+        border-radius: 0.75rem;
+      }
+      
+      .help-title {
+        font-size: 1.125rem;
+        margin-bottom: 1rem;
+      }
+      
+      .help-section {
+        margin-bottom: 1.5rem;
+      }
+      
+      .help-section-title {
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
+      }
+      
+      .help-close {
+        padding: 0.625rem 1.25rem;
+        font-size: 0.9rem;
+        margin-top: 1rem;
+      }
     }
   `
 
   render() {
     return html`
       <div class="container">
-        <app-header 
+        <app-header-new 
           @search=${this._handleSearch}
-          @add-bookmark=${this._handleAddBookmark}>
-        </app-header>
+          @add-bookmark=${this._handleAddBookmark}
+          @auth-success=${this._handleAuthSuccess}
+          @auth-logout=${this._handleAuthLogout}>
+        </app-header-new>
         
         <div class="main-content">
           <aside class="sidebar">
@@ -880,5 +990,70 @@ export class AppRoot extends LitElement {
     } catch (error) {
       console.error('Failed to load tags and domains:', error)
     }
+  }
+
+  private async _handleAuthSuccess(e: CustomEvent) {
+    const { user, token } = e.detail
+    
+    // Store authentication data
+    localStorage.setItem('auth_token', token)
+    localStorage.setItem('user', JSON.stringify(user))
+    
+    // Refresh bookmark list to show user's bookmarks
+    const bookmarkList = this.shadowRoot?.querySelector('bookmark-list') as any
+    if (bookmarkList) {
+      await bookmarkList.loadBookmarks(true)
+    }
+    
+    // Refresh tag cloud and folder tree
+    const tagCloud = this.shadowRoot?.querySelector('tag-cloud') as any
+    if (tagCloud) {
+      await tagCloud.loadTags()
+    }
+    
+    const folderTree = this.shadowRoot?.querySelector('folder-tree') as any
+    if (folderTree) {
+      await folderTree.refresh()
+    }
+    
+    // Refresh available data for advanced search
+    await this._loadAvailableTagsAndDomains()
+    
+    console.log('Authentication successful for user:', user.username)
+  }
+
+  private async _handleAuthLogout() {
+    // Clear authentication data
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('user')
+    
+    // Reset all filters and search
+    this._searchQuery = ''
+    this._tagFilter = ''
+    this._favoritesOnly = false
+    this._advancedFilters = null
+    this._selectedFolderId = -1
+    
+    // Refresh all data-dependent components to show public/empty state
+    const bookmarkList = this.shadowRoot?.querySelector('bookmark-list') as any
+    if (bookmarkList) {
+      await bookmarkList.loadBookmarks(true)
+    }
+    
+    const tagCloud = this.shadowRoot?.querySelector('tag-cloud') as any
+    if (tagCloud) {
+      await tagCloud.loadTags()
+    }
+    
+    const folderTree = this.shadowRoot?.querySelector('folder-tree') as any
+    if (folderTree) {
+      await folderTree.refresh()
+    }
+    
+    // Clear available data arrays
+    this._availableTags = []
+    this._availableDomains = []
+    
+    console.log('User logged out successfully')
   }
 }

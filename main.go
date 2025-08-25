@@ -43,6 +43,7 @@ func main() {
 	bookmarkRepo := db.NewBookmarkRepository(database)
 	tagRepo := db.NewTagRepository(database)
 	learningRepo := db.NewLearningRepository(database)
+	folderRepo := db.NewFolderRepository(database)
 
 	// Initialize handlers
 	bookmarkHandler := handlers.NewBookmarkHandler(bookmarkRepo, learningRepo)
@@ -53,6 +54,7 @@ func main() {
 	learningHandler := handlers.NewLearningHandler(bookmarkRepo, learningRepo)
 	importHandler := handlers.NewImportHandler(bookmarkRepo)
 	archiveHandler := handlers.NewArchiveHandler(bookmarkRepo)
+	folderHandler := handlers.NewFolderHandler(folderRepo, bookmarkRepo)
 	
 	// Initialize health checker service
 	healthChecker := services.NewHealthChecker(bookmarkRepo)
@@ -91,6 +93,8 @@ func main() {
 	mux.Handle("/api/bookmarks/", bookmarkHandler)
 	mux.Handle("/api/tags", tagHandler)
 	mux.Handle("/api/tags/", tagHandler)
+	mux.Handle("/api/folders", folderHandler)
+	mux.Handle("/api/folders/", folderHandler)
 	mux.Handle("/api/export", importExportHandler)
 	mux.Handle("/api/import", importExportHandler)
 	mux.Handle("/api/analytics", analyticsHandler)
@@ -100,6 +104,7 @@ func main() {
 	importHandler.RegisterRoutes(mux)
 	healthHandler.RegisterRoutes(mux)
 	archiveHandler.RegisterRoutes(mux)
+	folderHandler.RegisterRoutes(mux)
 	mux.HandleFunc("/api/health", handleHealth)
 	mux.HandleFunc("/api/stats", handleStats(database))
 

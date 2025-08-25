@@ -2,52 +2,36 @@ import { LitElement, html, css } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
 import { searchSuggestionsService } from '../services/search-suggestions.ts'
 import './search-suggestions.ts'
+import './auth-dialog.ts'
+
+// interface User { // TODO: Remove after migration
+//   id: number
+//   username: string
+//   email: string
+//   full_name?: string
+//   is_admin: boolean
+// }
 
 @customElement('app-header')
 export class AppHeader extends LitElement {
   @state() private _searchQuery = ''
   @state() private _showSuggestions = false
   @state() private _selectedSuggestionIndex = -1
+  // @state() private _user: User | null = null // TODO: Remove after migration
+  // @state() private _showUserMenu = false // TODO: Remove after migration
 
   static styles = css`
     :host {
       display: block;
     }
 
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 1rem 0;
-      border-bottom: 1px solid var(--border-color);
-      margin-bottom: 1rem;
+    .user-menu {
+      position: absolute;
+      right: 0;
+      top: 100%;
+      margin-top: 0.5rem;
+      min-width: 200px;
     }
-
-    .logo {
-      font-size: 1.5rem;
-      font-weight: bold;
-      background: linear-gradient(45deg, var(--accent-primary), var(--accent-secondary));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      text-shadow: var(--shadow-md);
-    }
-
-    .search-container {
-      flex: 1;
-      max-width: 500px;
-      margin: 0 2rem;
-      position: relative;
-    }
-
-    .search-input {
-      width: 100%;
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      color: var(--text-primary);
-      padding: 0.75rem 1rem;
-      border-radius: 0.5rem;
-      font-family: 'Courier New', monospace;
       transition: all 0.3s ease;
     }
 

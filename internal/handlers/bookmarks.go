@@ -10,6 +10,7 @@ import (
 
 	"torimemo/internal/ai"
 	"torimemo/internal/db"
+	"torimemo/internal/middleware"
 	"torimemo/internal/models"
 	"torimemo/internal/search"
 	"torimemo/internal/services"
@@ -83,8 +84,11 @@ func (h *BookmarkHandler) listBookmarks(w http.ResponseWriter, r *http.Request) 
 	tagFilter := query.Get("tag")
 	favoritesOnly := query.Get("favorites") == "true"
 
+	// Get user ID from context
+	userID := h.getUserID(r)
+
 	// Get bookmarks
-	response, err := h.repo.List(page, limit, searchQuery, tagFilter, favoritesOnly)
+	response, err := h.repo.List(page, limit, searchQuery, tagFilter, favoritesOnly, userID)
 	if err != nil {
 		h.writeError(w, fmt.Sprintf("Failed to list bookmarks: %v", err), http.StatusInternalServerError)
 		return
@@ -134,8 +138,11 @@ func (h *BookmarkHandler) createBookmark(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
+	// Get user ID from context
+	userID := h.getUserID(r)
+
 	// Create bookmark
-	bookmark, err := h.repo.Create(&req)
+	bookmark, err := h.repo.Create(&req, userID)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
 			h.writeError(w, "Bookmark with this URL already exists", http.StatusConflict)
@@ -177,7 +184,10 @@ func (h *BookmarkHandler) getBookmark(w http.ResponseWriter, r *http.Request, id
 		return
 	}
 
-	bookmark, err := h.repo.GetByID(id)
+	// Get user ID from context
+	userID := h.getUserID(r)
+
+	bookmark, err := h.repo.GetByID(id, userID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			h.writeError(w, "Bookmark not found", http.StatusNotFound)
@@ -214,8 +224,11 @@ func (h *BookmarkHandler) updateBookmark(w http.ResponseWriter, r *http.Request,
 
 	// Get original bookmark for learning feedback
 	var originalTags []string
+	// Get user ID from context
+	userID := h.getUserID(r)
+
 	if len(req.Tags) > 0 {
-		originalBookmark, err := h.repo.GetByID(id)
+		originalBookmark, err := h.repo.GetByID(id, userID)
 		if err == nil && len(originalBookmark.Tags) > 0 {
 			for _, tag := range originalBookmark.Tags {
 				originalTags = append(originalTags, tag.Name)
@@ -223,7 +236,7 @@ func (h *BookmarkHandler) updateBookmark(w http.ResponseWriter, r *http.Request,
 		}
 	}
 
-	bookmark, err := h.repo.Update(id, &req)
+	bookmark, err := h.repo.Update(id, &req, userID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			h.writeError(w, "Bookmark not found", http.StatusNotFound)
@@ -261,7 +274,10 @@ func (h *BookmarkHandler) deleteBookmark(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	err = h.repo.Delete(id)
+	// Get user ID from context
+	userID := h.getUserID(r)
+
+	err = h.repo.Delete(id, userID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			h.writeError(w, "Bookmark not found", http.StatusNotFound)
@@ -287,7 +303,10 @@ func (h *BookmarkHandler) searchBookmarks(w http.ResponseWriter, r *http.Request
 		limit = 20
 	}
 
-	results, err := h.repo.Search(query, limit)
+	// Get user ID from context
+	userID := h.getUserID(r)
+
+	results, err := h.repo.Search(query, limit, userID)
 	if err != nil {
 		h.writeError(w, fmt.Sprintf("Search failed: %v", err), http.StatusInternalServerError)
 		return
@@ -315,8 +334,11 @@ func (h *BookmarkHandler) fuzzySearchBookmarks(w http.ResponseWriter, r *http.Re
 		limit = 20
 	}
 
+	// Get user ID from context
+	userID := h.getUserID(r)
+
 	// First try exact FTS search
-	exactResults, err := h.repo.Search(query, limit)
+	exactResults, err := h.repo.Search(query, limit, userID)
 	if err != nil {
 		h.writeError(w, fmt.Sprintf("Search failed: %v", err), http.StatusInternalServerError)
 		return
@@ -335,7 +357,7 @@ func (h *BookmarkHandler) fuzzySearchBookmarks(w http.ResponseWriter, r *http.Re
 	}
 
 	// Get all bookmarks for fuzzy matching
-	allBookmarks, err := h.repo.List(1, 1000, "", "", false) // Get more bookmarks for fuzzy matching
+	allBookmarks, err := h.repo.List(1, 1000, "", "", false, userID) // Get more bookmarks for fuzzy matching
 	if err != nil {
 		h.writeError(w, fmt.Sprintf("Failed to get bookmarks for fuzzy search: %v", err), http.StatusInternalServerError)
 		return
@@ -512,6 +534,15 @@ func (h *BookmarkHandler) suggestTags(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.writeJSON(w, response)
+}
+
+// getUserID extracts user ID from request context, defaults to 1 for backward compatibility
+func (h *BookmarkHandler) getUserID(r *http.Request) int {
+	if userID, ok := middleware.GetUserIDFromContext(r); ok {
+		return userID
+	}
+	// Default to user ID 1 for backward compatibility with single-user setup
+	return 1
 }
 
 // writeJSON writes a JSON response

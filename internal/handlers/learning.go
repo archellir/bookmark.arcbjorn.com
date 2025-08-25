@@ -63,8 +63,9 @@ func (h *LearningHandler) submitFeedback(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Get bookmark to analyze URL patterns
-	bookmark, err := h.bookmarkRepo.GetByID(feedback.BookmarkID)
+	// Get bookmark to analyze URL patterns  
+	userID := 1 // Default userID for learning operations
+	bookmark, err := h.bookmarkRepo.GetByID(feedback.BookmarkID, userID)
 	if err != nil {
 		h.writeError(w, "Bookmark not found", http.StatusNotFound)
 		return

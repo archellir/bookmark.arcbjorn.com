@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"torimemo/internal/db"
 	"torimemo/internal/handlers"
@@ -58,7 +59,6 @@ func main() {
 	folderHandler := handlers.NewFolderHandler(folderRepo, bookmarkRepo)
 	duplicateHandler := handlers.NewDuplicateHandler(bookmarkRepo)
 	authHandler := handlers.NewAuthHandler(userRepo)
-	monitoringHandler := handlers.NewMonitoringHandler(userRepo, database)
 	
 	// Initialize health checker service
 	healthChecker := services.NewHealthChecker(bookmarkRepo)
@@ -111,7 +111,6 @@ func main() {
 	folderHandler.RegisterRoutes(mux)
 	duplicateHandler.RegisterRoutes(mux)
 	authHandler.RegisterRoutes(mux)
-	monitoringHandler.RegisterRoutes(mux)
 	mux.HandleFunc("/api/health", handleHealth)
 	mux.HandleFunc("/api/stats", handleStats(database))
 
@@ -168,12 +167,14 @@ func main() {
 		}))
 	})
 
-	// Initialize auth middleware
+	// Initialize middlewares
 	authMiddleware := middleware.NewAuthMiddleware(userRepo)
+	rateLimiter := middleware.NewRateLimiter(100, time.Minute, 20) // 100 req/min, burst of 20
 	
-	// Apply middleware with optional auth for monitoring endpoints
+	// Apply middleware stack
 	corsHandler := middleware.CORSMiddleware(mux)
-	optionalAuthHandler := authMiddleware.OptionalAuth(corsHandler)
+	rateLimitedHandler := rateLimiter.Middleware(corsHandler)
+	optionalAuthHandler := authMiddleware.OptionalAuth(rateLimitedHandler)
 	handler := middleware.LoggingMiddleware(optionalAuthHandler)
 
 	fmt.Printf("🚀 Torimemo server starting on port %s\n", port)

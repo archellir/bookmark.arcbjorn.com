@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"fmt"
 	"net/url"
 	"regexp"
 	"strings"
@@ -27,51 +28,95 @@ type ContentRule struct {
 	Priority  int
 }
 
-// Categorizer handles AI-powered bookmark categorization
+// Categorizer handles AI-powered bookmark categorization with 3-layer architecture
 type Categorizer struct {
+	// Layer 1: Rule-based
 	domainRules       []DomainRule
 	contentRules      []ContentRule
+	
+	// Layer 2: FastText (lightweight ML)
+	fastTextClassifier *FastTextClassifier
+	
+	// Layer 3: ONNX (advanced content understanding)  
+	onnxEngine        *ONNXInferenceEngine
+	
+	// Additional components
 	contentFetcher    *services.ContentFetcher
 	learningRepo      *db.LearningRepository
 	confidenceTuner   *ConfidenceTuner
 	semanticAnalyzer  *SemanticAnalyzer
+	
+	// Configuration
+	enableFastText    bool
+	enableONNX        bool
 }
 
-// NewCategorizer creates a new AI categorizer
+// NewCategorizer creates a new AI categorizer with full 3-layer architecture
 func NewCategorizer() *Categorizer {
 	c := &Categorizer{
+		// Layer 1: Rule-based
 		domainRules:      getDefaultDomainRules(),
 		contentRules:     getDefaultContentRules(),
+		
+		// Layer 2: FastText
+		fastTextClassifier: NewFastTextClassifier("./models/fasttext"),
+		enableFastText:     true,
+		
+		// Layer 3: ONNX
+		onnxEngine:        NewONNXInferenceEngine("./models/onnx"),
+		enableONNX:        true,
+		
+		// Additional components
 		contentFetcher:   services.NewContentFetcher(),
 		learningRepo:     nil, // Will be set when needed
 		semanticAnalyzer: NewSemanticAnalyzer(),
 	}
+	
+	// Initialize models asynchronously
+	go c.initializeModels()
+	
 	return c
 }
 
 // NewCategorizerWithLearning creates a categorizer with learning system integration
 func NewCategorizerWithLearning(learningRepo *db.LearningRepository) *Categorizer {
 	c := &Categorizer{
+		// Layer 1: Rule-based
 		domainRules:      getDefaultDomainRules(),
 		contentRules:     getDefaultContentRules(),
+		
+		// Layer 2: FastText
+		fastTextClassifier: NewFastTextClassifier("./models/fasttext"),
+		enableFastText:     true,
+		
+		// Layer 3: ONNX
+		onnxEngine:        NewONNXInferenceEngine("./models/onnx"),
+		enableONNX:        true,
+		
+		// Additional components with learning
 		contentFetcher:   services.NewContentFetcher(),
 		learningRepo:     learningRepo,
 		confidenceTuner:  NewConfidenceTuner(learningRepo),
 		semanticAnalyzer: NewSemanticAnalyzer(),
 	}
+	
+	// Initialize models asynchronously
+	go c.initializeModels()
+	
 	return c
 }
 
 // TagSuggestion represents AI-suggested tags for a bookmark
 type TagSuggestion struct {
-	URL         string   `json:"url"`
-	Tags        []string `json:"tags"`
-	Category    string   `json:"category"`
-	Confidence  float64  `json:"confidence"`
-	Source      string   `json:"source"`
-	Title       string   `json:"title,omitempty"`       // Fetched title if available
-	Description string   `json:"description,omitempty"` // Fetched description if available
-	FaviconURL  string   `json:"favicon_url,omitempty"` // Fetched favicon if available
+	URL          string   `json:"url"`
+	Tags         []string `json:"tags"`
+	Category     string   `json:"category"`
+	Confidence   float64  `json:"confidence"`
+	Source       string   `json:"source"`
+	Title        string   `json:"title,omitempty"`       // Fetched title if available
+	Description  string   `json:"description,omitempty"` // Fetched description if available
+	FaviconURL   string   `json:"favicon_url,omitempty"` // Fetched favicon if available
+	QualityScore float64  `json:"quality_score,omitempty"` // ONNX quality assessment
 }
 
 // CategorizeBookmark analyzes a bookmark and suggests tags and category
@@ -169,6 +214,26 @@ func (c *Categorizer) CategorizeBookmark(bookmark *models.Bookmark) (*TagSuggest
 			*suggestions = enhancedSuggestions[0]
 			suggestions.Source += "+semantic"
 		}
+	}
+
+	// LAYER 2: Apply FastText classification (lightweight ML)
+	if c.enableFastText && c.fastTextClassifier != nil {
+		fastTextTags := c.applyFastTextClassification(title, description)
+		suggestions.Tags = append(suggestions.Tags, fastTextTags...)
+		if len(fastTextTags) > 0 {
+			suggestions.Source += "+fasttext"
+		}
+	}
+
+	// LAYER 3: Apply ONNX models (advanced content understanding)
+	if c.enableONNX && c.onnxEngine != nil {
+		onnxTags, qualityScore := c.applyONNXAnalysis(title, description, bookmark.URL)
+		suggestions.Tags = append(suggestions.Tags, onnxTags...)
+		if len(onnxTags) > 0 {
+			suggestions.Source += "+onnx"
+		}
+		// Store quality score for future use
+		suggestions.QualityScore = qualityScore
 	}
 
 	// Remove duplicates and set category
@@ -452,4 +517,170 @@ func getDefaultContentRules() []ContentRule {
 		{Keywords: []string{"fitness", "health", "workout", "exercise", "wellness"}, Tags: []string{"health", "fitness", "wellness"}, Category: "reference", Priority: 5},
 		{Keywords: []string{"travel", "vacation", "trip", "destination", "tourism"}, Tags: []string{"travel", "tourism", "adventure"}, Category: "reference", Priority: 5},
 	}
+}
+
+// initializeModels initializes the 3-layer AI models asynchronously
+func (c *Categorizer) initializeModels() {
+	// Initialize FastText model (Layer 2)
+	if c.enableFastText && c.fastTextClassifier != nil {
+		if err := c.fastTextClassifier.Initialize(); err != nil {
+			fmt.Printf("Warning: Failed to initialize FastText classifier: %v\n", err)
+			c.enableFastText = false
+		}
+	}
+	
+	// Initialize ONNX models (Layer 3)
+	if c.enableONNX && c.onnxEngine != nil {
+		if err := c.onnxEngine.Initialize(); err != nil {
+			fmt.Printf("Warning: Failed to initialize ONNX engine: %v\n", err)
+			c.enableONNX = false
+		}
+	}
+}
+
+// applyFastTextClassification applies FastText lightweight ML classification
+func (c *Categorizer) applyFastTextClassification(title, description string) []string {
+	if !c.enableFastText || c.fastTextClassifier == nil {
+		return []string{}
+	}
+	
+	// Combine title and description for classification
+	content := title
+	if description != "" {
+		if content != "" {
+			content += ". " + description
+		} else {
+			content = description
+		}
+	}
+	
+	if content == "" {
+		return []string{}
+	}
+	
+	// Classify content
+	result, err := c.fastTextClassifier.ClassifyText(content, 5)
+	if err != nil {
+		fmt.Printf("FastText classification error: %v\n", err)
+		return []string{}
+	}
+	
+	var tags []string
+	for _, pred := range result.Predictions {
+		// Use predictions with confidence > 0.5
+		if pred.Confidence > 0.5 {
+			tags = append(tags, pred.Label)
+		}
+	}
+	
+	return tags
+}
+
+// applyONNXAnalysis applies ONNX advanced content understanding
+func (c *Categorizer) applyONNXAnalysis(title, description, url string) ([]string, float64) {
+	if !c.enableONNX || c.onnxEngine == nil {
+		return []string{}, 0.0
+	}
+	
+	// Analyze content with ONNX models
+	result, err := c.onnxEngine.AnalyzeContent(description, title, url)
+	if err != nil {
+		fmt.Printf("ONNX analysis error: %v\n", err)
+		return []string{}, 0.0
+	}
+	
+	var tags []string
+	qualityScore := 0.0
+	
+	// Extract tags from sentiment analysis
+	if result.Sentiment != nil && result.Sentiment.TopResult.Confidence > 0.7 {
+		// Don't add neutral sentiment as tag
+		if result.Sentiment.TopResult.Label != "neutral" {
+			tags = append(tags, result.Sentiment.TopResult.Label)
+		}
+	}
+	
+	// Extract tags from topic classification
+	if result.Topics != nil {
+		for _, pred := range result.Topics.Predictions {
+			if pred.Confidence > 0.6 {
+				tags = append(tags, pred.Label)
+			}
+		}
+	}
+	
+	// Get quality score
+	if result.Quality != nil {
+		qualityScore = result.Quality.OverallScore
+		
+		// Add quality-based tags
+		if qualityScore > 0.8 {
+			tags = append(tags, "high-quality")
+		} else if qualityScore > 0.6 {
+			tags = append(tags, "good-quality")
+		}
+		
+		// Add specific quality indicators
+		if result.Quality.TechnicalDepth > 0.7 {
+			tags = append(tags, "technical")
+		}
+		if result.Quality.Engagement > 0.7 {
+			tags = append(tags, "engaging")
+		}
+	}
+	
+	// Extract content feature tags
+	if result.ContentFeatures != nil {
+		if result.ContentFeatures.CodeBlocks > 0 {
+			tags = append(tags, "code-examples")
+		}
+		if len(result.ContentFeatures.TechnicalTerms) > 5 {
+			tags = append(tags, "technical-content")
+		}
+		if result.ContentFeatures.ReadingLevel == "beginner" {
+			tags = append(tags, "beginner-friendly")
+		} else if result.ContentFeatures.ReadingLevel == "advanced" {
+			tags = append(tags, "advanced")
+		}
+	}
+	
+	return tags, qualityScore
+}
+
+// GetModelStatus returns the status of all AI models
+func (c *Categorizer) GetModelStatus() map[string]interface{} {
+	status := make(map[string]interface{})
+	
+	status["layer1_rules"] = map[string]interface{}{
+		"enabled":      true,
+		"domain_rules": len(c.domainRules),
+		"content_rules": len(c.contentRules),
+	}
+	
+	status["layer2_fasttext"] = map[string]interface{}{
+		"enabled":     c.enableFastText,
+		"initialized": c.fastTextClassifier != nil,
+	}
+	
+	if c.enableFastText && c.fastTextClassifier != nil {
+		status["layer2_fasttext"].(map[string]interface{})["supported_labels"] = c.fastTextClassifier.GetSupportedLabels()
+	}
+	
+	status["layer3_onnx"] = map[string]interface{}{
+		"enabled":     c.enableONNX,
+		"initialized": c.onnxEngine != nil,
+	}
+	
+	if c.enableONNX && c.onnxEngine != nil {
+		status["layer3_onnx"].(map[string]interface{})["supported_analysis"] = c.onnxEngine.GetSupportedAnalysis()
+	}
+	
+	status["additional_components"] = map[string]interface{}{
+		"semantic_analyzer": c.semanticAnalyzer != nil,
+		"confidence_tuner":  c.confidenceTuner != nil,
+		"learning_enabled":  c.learningRepo != nil,
+		"content_fetching":  c.contentFetcher != nil,
+	}
+	
+	return status
 }

@@ -12,20 +12,21 @@ export class BookmarkItem extends LitElement {
     }
 
     .bookmark-card {
-      background: linear-gradient(135deg, rgba(0, 255, 255, 0.05) 0%, transparent 50%);
-      background-color: rgba(10, 10, 10, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
       border-radius: 0.75rem;
       padding: 1.5rem;
       backdrop-filter: blur(10px);
       transition: all 0.3s ease;
       position: relative;
       overflow: hidden;
+      box-shadow: var(--shadow-sm);
     }
 
     .bookmark-card:hover {
-      border-color: rgba(0, 255, 255, 0.5);
-      box-shadow: 0 8px 32px rgba(0, 255, 255, 0.2);
+      border-color: var(--accent-primary);
+      box-shadow: var(--shadow-lg);
+      background: var(--bg-card-hover);
       transform: translateY(-2px);
     }
 
@@ -36,7 +37,7 @@ export class BookmarkItem extends LitElement {
       left: 0;
       right: 0;
       height: 2px;
-      background: linear-gradient(90deg, #00ffff, #ff0080, #ffff00);
+      background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary), var(--accent-warning));
       opacity: 0;
       transition: opacity 0.3s ease;
     }
@@ -63,13 +64,13 @@ export class BookmarkItem extends LitElement {
     .favicon-placeholder {
       width: 20px;
       height: 20px;
-      background: linear-gradient(45deg, #00ffff, #ff0080);
+      background: linear-gradient(45deg, var(--accent-primary), var(--accent-secondary));
       border-radius: 3px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 10px;
-      color: black;
+      color: var(--bg-primary);
       font-weight: bold;
       flex-shrink: 0;
       margin-top: 2px;
@@ -83,7 +84,7 @@ export class BookmarkItem extends LitElement {
     .bookmark-title {
       font-size: 1rem;
       font-weight: 600;
-      color: white;
+      color: var(--text-primary);
       margin: 0 0 0.25rem 0;
       line-height: 1.4;
       overflow: hidden;
@@ -93,7 +94,7 @@ export class BookmarkItem extends LitElement {
 
     .bookmark-url {
       font-size: 0.8rem;
-      color: #00ffff;
+      color: var(--accent-primary);
       text-decoration: none;
       opacity: 0.8;
       overflow: hidden;
@@ -105,12 +106,12 @@ export class BookmarkItem extends LitElement {
 
     .bookmark-url:hover {
       opacity: 1;
-      text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+      text-shadow: var(--shadow-sm);
     }
 
     .bookmark-description {
       font-size: 0.875rem;
-      color: #a0a0a0;
+      color: var(--text-secondary);
       line-height: 1.4;
       margin: 0.75rem 0;
       display: -webkit-box;
@@ -127,9 +128,9 @@ export class BookmarkItem extends LitElement {
     }
 
     .tag {
-      background: linear-gradient(45deg, rgba(255, 0, 128, 0.2), rgba(0, 255, 255, 0.2));
-      border: 1px solid rgba(255, 0, 128, 0.3);
-      color: #ff0080;
+      background: rgba(var(--accent-secondary), 0.1);
+      border: 1px solid rgba(var(--accent-secondary), 0.3);
+      color: var(--accent-secondary);
       font-size: 0.7rem;
       padding: 0.25rem 0.5rem;
       border-radius: 0.25rem;
@@ -145,12 +146,12 @@ export class BookmarkItem extends LitElement {
       justify-content: space-between;
       margin-top: 1rem;
       padding-top: 1rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      border-top: 1px solid var(--border-color);
     }
 
     .bookmark-date {
       font-size: 0.7rem;
-      color: #666;
+      color: var(--text-muted);
       font-family: 'Courier New', monospace;
     }
 
@@ -162,7 +163,7 @@ export class BookmarkItem extends LitElement {
     .action-button {
       background: none;
       border: none;
-      color: #666;
+      color: var(--text-muted);
       cursor: pointer;
       padding: 0.25rem;
       border-radius: 0.25rem;
@@ -171,18 +172,18 @@ export class BookmarkItem extends LitElement {
     }
 
     .action-button:hover {
-      color: #00ffff;
-      background: rgba(0, 255, 255, 0.1);
+      color: var(--accent-primary);
+      background: rgba(var(--accent-primary), 0.1);
     }
 
     .favorite-button.active {
-      color: #ffff00;
-      text-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
+      color: var(--accent-warning);
+      text-shadow: var(--shadow-sm);
     }
 
     .delete-button:hover {
-      color: #ff1744;
-      background: rgba(255, 23, 68, 0.1);
+      color: var(--accent-danger);
+      background: rgba(var(--accent-danger), 0.1);
     }
   `
 

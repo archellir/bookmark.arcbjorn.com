@@ -28,7 +28,7 @@ export class BookmarkList extends LitElement {
     .loading {
       text-align: center;
       padding: 2rem;
-      color: #00ffff;
+      color: var(--accent-primary);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -38,8 +38,8 @@ export class BookmarkList extends LitElement {
     .loading-spinner {
       width: 40px;
       height: 40px;
-      border: 3px solid rgba(0, 255, 255, 0.2);
-      border-top: 3px solid #00ffff;
+      border: 3px solid rgba(var(--accent-primary), 0.2);
+      border-top: 3px solid var(--accent-primary);
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
@@ -52,17 +52,17 @@ export class BookmarkList extends LitElement {
     .error {
       text-align: center;
       padding: 2rem;
-      color: #ff1744;
-      background: rgba(255, 23, 68, 0.1);
-      border: 1px solid rgba(255, 23, 68, 0.3);
+      color: var(--accent-danger);
+      background: rgba(var(--accent-danger), 0.1);
+      border: 1px solid rgba(var(--accent-danger), 0.3);
       border-radius: 0.5rem;
       margin-bottom: 1rem;
     }
 
     .retry-button {
       background: transparent;
-      border: 1px solid #ff1744;
-      color: #ff1744;
+      border: 1px solid var(--accent-danger);
+      color: var(--accent-danger);
       padding: 0.5rem 1rem;
       border-radius: 0.25rem;
       cursor: pointer;
@@ -71,14 +71,14 @@ export class BookmarkList extends LitElement {
     }
 
     .retry-button:hover {
-      background: #ff1744;
-      color: white;
+      background: var(--accent-danger);
+      color: var(--bg-primary);
     }
 
     .empty-state {
       text-align: center;
       padding: 3rem 1rem;
-      color: #666;
+      color: var(--text-muted);
     }
 
     .empty-icon {
@@ -99,8 +99,8 @@ export class BookmarkList extends LitElement {
       align-items: center;
       margin-bottom: 1.5rem;
       padding: 1rem;
-      background: rgba(0, 255, 255, 0.05);
-      border: 1px solid rgba(0, 255, 255, 0.1);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
       border-radius: 0.5rem;
     }
 
@@ -114,12 +114,12 @@ export class BookmarkList extends LitElement {
     .stats-number {
       font-size: 1.25rem;
       font-weight: bold;
-      color: #00ffff;
+      color: var(--accent-primary);
     }
 
     .stats-label {
       font-size: 0.75rem;
-      color: #a0a0a0;
+      color: var(--text-secondary);
       text-transform: uppercase;
       letter-spacing: 1px;
     }
@@ -130,9 +130,9 @@ export class BookmarkList extends LitElement {
     }
 
     .load-more-button {
-      background: linear-gradient(45deg, rgba(255, 0, 128, 0.1) 0%, transparent 50%);
-      border: 1px solid #ff0080;
-      color: #ff0080;
+      background: var(--bg-card);
+      border: 1px solid var(--accent-secondary);
+      color: var(--accent-secondary);
       padding: 0.75rem 1.5rem;
       border-radius: 0.5rem;
       cursor: pointer;
@@ -142,9 +142,9 @@ export class BookmarkList extends LitElement {
     }
 
     .load-more-button:hover {
-      background: #ff0080;
-      color: black;
-      box-shadow: 0 0 20px rgba(255, 0, 128, 0.5);
+      background: var(--accent-secondary);
+      color: var(--bg-primary);
+      box-shadow: var(--shadow-md);
     }
 
     .load-more-button:disabled {

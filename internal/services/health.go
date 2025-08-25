@@ -127,7 +127,7 @@ func (hc *HealthChecker) runHealthCheck() {
 	log.Println("Running bookmark health check...")
 	
 	// Get all bookmarks
-	response, err := hc.repo.List(1, 10000, "", "", false) // Get all bookmarks
+	response, err := hc.repo.ListAllUsers(1, 10000, "", "", false) // Get all bookmarks
 	if err != nil {
 		log.Printf("Failed to get bookmarks for health check: %v", err)
 		return
@@ -292,7 +292,7 @@ func (hc *HealthChecker) GetHealthStats() map[string]int {
 	}
 	
 	// Get total bookmarks count
-	response, err := hc.repo.List(1, 10000, "", "", false)
+	response, err := hc.repo.ListAllUsers(1, 10000, "", "", false)
 	if err == nil {
 		stats["total"] = len(response.Bookmarks)
 	}
@@ -321,7 +321,7 @@ func (hc *HealthChecker) GetHealthStats() map[string]int {
 // CheckBookmarkNow immediately checks a specific bookmark
 func (hc *HealthChecker) CheckBookmarkNow(bookmarkID int) *BookmarkHealth {
 	// Get bookmark from database
-	bookmark, err := hc.repo.GetByID(bookmarkID)
+	bookmark, err := hc.repo.GetByID(bookmarkID, 0) // TODO: Pass actual user ID
 	if err != nil {
 		return &BookmarkHealth{
 			ID:          bookmarkID,

@@ -30,7 +30,7 @@ func NewBookmarkHandler(repo *db.BookmarkRepository, learningRepo *db.LearningRe
 	return &BookmarkHandler{
 		repo:             repo,
 		learningRepo:     learningRepo,
-		categorizer:      ai.NewCategorizer(),
+		categorizer:      ai.NewCategorizerWithLearning(learningRepo),
 		fuzzyMatcher:     search.DefaultFuzzyMatcher(),
 		duplicateService: services.NewDuplicateService(repo),
 	}
@@ -117,25 +117,45 @@ func (h *BookmarkHandler) createBookmark(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Set title if not provided
-	if req.Title == "" {
-		req.Title = req.URL
+	// Use AI to enhance bookmark data (tags, title, description, favicon)
+	tempBookmark := &models.Bookmark{
+		Title:       req.Title,
+		URL:         req.URL,
+		Description: req.Description,
 	}
 
-	// Use AI to suggest tags if none provided
-	var suggestions *ai.TagSuggestion
-	if len(req.Tags) == 0 {
-		tempBookmark := &models.Bookmark{
-			Title:       req.Title,
-			URL:         req.URL,
-			Description: req.Description,
-		}
-
-		var err error
-		suggestions, err = h.categorizer.CategorizeBookmark(tempBookmark)
-		if err == nil && len(suggestions.Tags) > 0 {
+	suggestions, err := h.categorizer.CategorizeBookmark(tempBookmark)
+	var faviconURL string
+	if err == nil {
+		// Use AI suggested tags if none provided
+		if len(req.Tags) == 0 && len(suggestions.Tags) > 0 {
 			req.Tags = suggestions.Tags
 		}
+		
+		// Use AI suggested title if none provided or is just the URL
+		if (req.Title == "" || req.Title == req.URL) && suggestions.Title != "" {
+			req.Title = suggestions.Title
+		}
+		
+		// Use AI suggested description if none provided
+		if req.Description == nil && suggestions.Description != "" {
+			req.Description = &suggestions.Description
+		}
+		
+		// Store favicon URL for later use
+		if suggestions.FaviconURL != "" {
+			faviconURL = suggestions.FaviconURL
+		}
+	}
+
+	// Set favicon URL if fetched and not provided
+	if faviconURL != "" && req.FaviconURL == nil {
+		req.FaviconURL = &faviconURL
+	}
+
+	// Fallback: set title if still empty
+	if req.Title == "" {
+		req.Title = req.URL
 	}
 
 	// Get user ID from context

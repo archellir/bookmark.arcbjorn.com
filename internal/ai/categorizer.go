@@ -29,10 +29,11 @@ type ContentRule struct {
 
 // Categorizer handles AI-powered bookmark categorization
 type Categorizer struct {
-	domainRules     []DomainRule
-	contentRules    []ContentRule
-	contentFetcher  *services.ContentFetcher
-	learningRepo    *db.LearningRepository
+	domainRules      []DomainRule
+	contentRules     []ContentRule
+	contentFetcher   *services.ContentFetcher
+	learningRepo     *db.LearningRepository
+	confidenceTuner  *ConfidenceTuner
 }
 
 // NewCategorizer creates a new AI categorizer
@@ -53,6 +54,7 @@ func NewCategorizerWithLearning(learningRepo *db.LearningRepository) *Categorize
 		contentRules:    getDefaultContentRules(),
 		contentFetcher:  services.NewContentFetcher(),
 		learningRepo:    learningRepo,
+		confidenceTuner: NewConfidenceTuner(learningRepo),
 	}
 	return c
 }
@@ -149,7 +151,14 @@ func (c *Categorizer) CategorizeBookmark(bookmark *models.Bookmark) (*TagSuggest
 	// Remove duplicates and set category
 	suggestions.Tags = c.removeDuplicates(suggestions.Tags)
 	suggestions.Category = c.determineCategory(suggestions.Tags, domain)
-	suggestions.Confidence = c.calculateConfidence(suggestions.Tags, domain, fetchedContent != nil)
+	baseConfidence := c.calculateConfidence(suggestions.Tags, domain, fetchedContent != nil)
+	
+	// Apply confidence tuning if available
+	if c.confidenceTuner != nil {
+		suggestions.Confidence = c.confidenceTuner.TuneConfidence(baseConfidence, suggestions)
+	} else {
+		suggestions.Confidence = baseConfidence
+	}
 
 	// Include fetched content in response
 	if fetchedContent != nil {

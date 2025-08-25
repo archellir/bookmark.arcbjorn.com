@@ -2,6 +2,7 @@ import { LitElement, html, css } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
 import type { Bookmark } from '../services/api.ts'
 import { archiveService, type ArchivedContent } from '../services/archive.ts'
+import { apiService, type Folder } from '../services/api.ts'
 
 export interface BookmarkHealth {
   id: number
@@ -24,6 +25,7 @@ export class BookmarkItem extends LitElement {
   @state() private _loadingHealth = false
   @state() private _archivedContent: ArchivedContent | null = null
   @state() private _loadingArchive = false
+  @state() private _folders: Folder[] = []
 
   static styles = css`
     :host {
@@ -222,6 +224,23 @@ export class BookmarkItem extends LitElement {
       font-weight: 500;
     }
 
+    .bookmark-folders {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 0.5rem 0;
+    }
+
+    .folder-tag {
+      background: rgba(0, 0, 0, 0.05);
+      border: 1px solid;
+      font-size: 0.7rem;
+      padding: 0.2rem 0.4rem;
+      border-radius: 0.2rem;
+      font-family: 'Courier New', monospace;
+      font-weight: 500;
+    }
+
     .bookmark-footer {
       display: flex;
       align-items: center;
@@ -382,6 +401,7 @@ export class BookmarkItem extends LitElement {
     super.connectedCallback()
     this._loadHealth()
     this._loadArchiveStatus()
+    this._loadFolders()
   }
 
   private async _loadHealth() {
@@ -432,6 +452,15 @@ export class BookmarkItem extends LitElement {
       console.error('Failed to archive bookmark:', error)
     } finally {
       this._loadingArchive = false
+    }
+  }
+
+  private async _loadFolders() {
+    try {
+      const response = await apiService.getBookmarkFolders(this.bookmark.id)
+      this._folders = response.folders
+    } catch (error) {
+      console.debug('Failed to load folders:', error)
     }
   }
 
@@ -537,6 +566,16 @@ export class BookmarkItem extends LitElement {
           <div class="bookmark-tags">
             ${tagNames.map(tagName => html`
               <span class="tag">${tagName}</span>
+            `)}
+          </div>
+        ` : ''}
+
+        ${this._folders.length > 0 ? html`
+          <div class="bookmark-folders">
+            ${this._folders.map(folder => html`
+              <span class="folder-tag" style="border-color: ${folder.color}; color: ${folder.color}">
+                ${folder.icon} ${folder.name}
+              </span>
             `)}
           </div>
         ` : ''}

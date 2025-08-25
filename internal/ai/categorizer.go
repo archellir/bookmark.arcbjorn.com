@@ -5,7 +5,9 @@ import (
 	"regexp"
 	"strings"
 
+	"torimemo/internal/db"
 	"torimemo/internal/models"
+	"torimemo/internal/services"
 )
 
 // DomainRule defines a rule for categorizing domains
@@ -27,26 +29,44 @@ type ContentRule struct {
 
 // Categorizer handles AI-powered bookmark categorization
 type Categorizer struct {
-	domainRules  []DomainRule
-	contentRules []ContentRule
+	domainRules     []DomainRule
+	contentRules    []ContentRule
+	contentFetcher  *services.ContentFetcher
+	learningRepo    *db.LearningRepository
 }
 
 // NewCategorizer creates a new AI categorizer
 func NewCategorizer() *Categorizer {
 	c := &Categorizer{
-		domainRules:  getDefaultDomainRules(),
-		contentRules: getDefaultContentRules(),
+		domainRules:     getDefaultDomainRules(),
+		contentRules:    getDefaultContentRules(),
+		contentFetcher:  services.NewContentFetcher(),
+		learningRepo:    nil, // Will be set when needed
+	}
+	return c
+}
+
+// NewCategorizerWithLearning creates a categorizer with learning system integration
+func NewCategorizerWithLearning(learningRepo *db.LearningRepository) *Categorizer {
+	c := &Categorizer{
+		domainRules:     getDefaultDomainRules(),
+		contentRules:    getDefaultContentRules(),
+		contentFetcher:  services.NewContentFetcher(),
+		learningRepo:    learningRepo,
 	}
 	return c
 }
 
 // TagSuggestion represents AI-suggested tags for a bookmark
 type TagSuggestion struct {
-	URL        string   `json:"url"`
-	Tags       []string `json:"tags"`
-	Category   string   `json:"category"`
-	Confidence float64  `json:"confidence"`
-	Source     string   `json:"source"`
+	URL         string   `json:"url"`
+	Tags        []string `json:"tags"`
+	Category    string   `json:"category"`
+	Confidence  float64  `json:"confidence"`
+	Source      string   `json:"source"`
+	Title       string   `json:"title,omitempty"`       // Fetched title if available
+	Description string   `json:"description,omitempty"` // Fetched description if available
+	FaviconURL  string   `json:"favicon_url,omitempty"` // Fetched favicon if available
 }
 
 // CategorizeBookmark analyzes a bookmark and suggests tags and category
@@ -66,22 +86,83 @@ func (c *Categorizer) CategorizeBookmark(bookmark *models.Bookmark) (*TagSuggest
 	}
 	domain := parsedURL.Hostname()
 
-	// Apply domain rules
+	// Check for learned patterns first (highest priority)
+	if c.learningRepo != nil {
+		if learnedTags := c.applyLearnedPatterns(bookmark.URL, domain); len(learnedTags) > 0 {
+			suggestions.Tags = append(suggestions.Tags, learnedTags...)
+			suggestions.Source = "learned-patterns"
+		}
+	}
+
+	// Apply domain rules (fast and always available)
 	domainTags := c.categorizeDomain(domain)
 	suggestions.Tags = append(suggestions.Tags, domainTags...)
 
-	// Apply content rules
+	// Apply domain profile knowledge if available
+	if c.learningRepo != nil {
+		if profileTags := c.applyDomainProfile(domain); len(profileTags) > 0 {
+			suggestions.Tags = append(suggestions.Tags, profileTags...)
+			if suggestions.Source == "rule-based" {
+				suggestions.Source = "rule-based+domain-profile"
+			}
+		}
+	}
+
+	// Get title and description for content analysis
+	title := bookmark.Title
 	description := ""
 	if bookmark.Description != nil {
 		description = *bookmark.Description
 	}
-	contentTags := c.categorizeContent(bookmark.Title, description)
+
+	// Fetch content if title or description is missing/empty
+	var fetchedContent *services.PageContent
+	if title == "" || title == bookmark.URL || description == "" {
+		if c.contentFetcher.IsValidURL(bookmark.URL) {
+			if content, err := c.contentFetcher.FetchContentWithTimeout(bookmark.URL, 5000); err == nil {
+				fetchedContent = content
+				if title == "" || title == bookmark.URL {
+					title = content.Title
+				}
+				if description == "" {
+					description = content.Description
+				}
+				suggestions.Source = "rule-based+content-fetched"
+			}
+		}
+	}
+
+	// Apply content rules with enhanced content
+	contentTags := c.categorizeContent(title, description)
 	suggestions.Tags = append(suggestions.Tags, contentTags...)
+
+	// Add tags from fetched keywords if available
+	if fetchedContent != nil && fetchedContent.Keywords != "" {
+		keywordTags := c.categorizeContent(fetchedContent.Keywords, "")
+		suggestions.Tags = append(suggestions.Tags, keywordTags...)
+	}
+
+	// Apply URL path analysis
+	pathTags := c.categorizeURLPath(parsedURL.Path)
+	suggestions.Tags = append(suggestions.Tags, pathTags...)
 
 	// Remove duplicates and set category
 	suggestions.Tags = c.removeDuplicates(suggestions.Tags)
 	suggestions.Category = c.determineCategory(suggestions.Tags, domain)
-	suggestions.Confidence = c.calculateConfidence(suggestions.Tags, domain)
+	suggestions.Confidence = c.calculateConfidence(suggestions.Tags, domain, fetchedContent != nil)
+
+	// Include fetched content in response
+	if fetchedContent != nil {
+		if title != "" && title != bookmark.Title {
+			suggestions.Title = title
+		}
+		if description != "" && (bookmark.Description == nil || *bookmark.Description != description) {
+			suggestions.Description = description
+		}
+		if fetchedContent.FaviconURL != "" {
+			suggestions.FaviconURL = fetchedContent.FaviconURL
+		}
+	}
 
 	return suggestions, nil
 }
@@ -157,22 +238,105 @@ func (c *Categorizer) determineCategory(tags []string, domain string) string {
 	return bestCategory
 }
 
+// applyLearnedPatterns uses learned patterns to suggest tags
+func (c *Categorizer) applyLearnedPatterns(url, domain string) []string {
+	// Try exact URL match first
+	if pattern, err := c.learningRepo.GetPatternByURL(url); err == nil && pattern != nil {
+		if pattern.Confidence > 0.6 { // High confidence threshold
+			return pattern.ConfirmedTags
+		}
+	}
+
+	// Try domain-based patterns
+	if profile, err := c.learningRepo.GetDomainProfile(domain); err == nil && profile != nil {
+		if len(profile.CommonTags) > 0 {
+			return profile.CommonTags
+		}
+	}
+
+	return nil
+}
+
+// applyDomainProfile uses domain profile to enhance suggestions
+func (c *Categorizer) applyDomainProfile(domain string) []string {
+	profile, err := c.learningRepo.GetDomainProfile(domain)
+	if err != nil || profile == nil {
+		return nil
+	}
+
+	var tags []string
+
+	// Add common tags for this domain
+	tags = append(tags, profile.CommonTags...)
+
+	return tags
+}
+
+// categorizeURLPath applies URL path-based rules
+func (c *Categorizer) categorizeURLPath(path string) []string {
+	tags := make([]string, 0)
+	lowerPath := strings.ToLower(path)
+	
+	// Documentation patterns
+	if strings.Contains(lowerPath, "/docs") || strings.Contains(lowerPath, "/documentation") {
+		tags = append(tags, "documentation")
+	}
+	
+	// API patterns
+	if strings.Contains(lowerPath, "/api") || strings.Contains(lowerPath, "/rest") {
+		tags = append(tags, "api", "reference")
+	}
+	
+	// Tutorial patterns
+	if strings.Contains(lowerPath, "/tutorial") || strings.Contains(lowerPath, "/guide") || strings.Contains(lowerPath, "/how-to") {
+		tags = append(tags, "tutorial", "education")
+	}
+	
+	// Blog patterns
+	if strings.Contains(lowerPath, "/blog") || strings.Contains(lowerPath, "/post") || strings.Contains(lowerPath, "/article") {
+		tags = append(tags, "blog", "article")
+	}
+	
+	// Download patterns
+	if strings.Contains(lowerPath, "/download") || strings.Contains(lowerPath, "/releases") {
+		tags = append(tags, "software", "download")
+	}
+	
+	// Repository patterns
+	if strings.Contains(lowerPath, "/repo") || strings.Contains(lowerPath, "/src") || strings.Contains(lowerPath, "/source") {
+		tags = append(tags, "code", "repository")
+	}
+	
+	return tags
+}
+
 // calculateConfidence calculates confidence score
-func (c *Categorizer) calculateConfidence(tags []string, domain string) float64 {
+func (c *Categorizer) calculateConfidence(tags []string, domain string, contentFetched bool) float64 {
 	if len(tags) == 0 {
 		return 0.1
 	}
 	
-	confidence := 0.5 // Base confidence for having any tags
-	confidence += float64(len(tags)) * 0.1 // More tags = higher confidence
+	confidence := 0.4 // Base confidence for having any tags
+	confidence += float64(len(tags)) * 0.08 // More tags = higher confidence
+	
+	// Content fetching increases confidence
+	if contentFetched {
+		confidence += 0.25
+	}
 	
 	// Known domains get higher confidence
-	knownDomains := []string{"github.com", "stackoverflow.com", "medium.com", "dev.to", "youtube.com"}
+	knownDomains := []string{"github.com", "stackoverflow.com", "medium.com", "dev.to", "youtube.com",
+		"linkedin.com", "twitter.com", "reddit.com", "wikipedia.org", "coursera.org"}
 	for _, known := range knownDomains {
 		if strings.Contains(domain, known) {
-			confidence += 0.3
+			confidence += 0.2
 			break
 		}
+	}
+	
+	// Educational and government domains get higher confidence
+	if strings.HasSuffix(domain, ".edu") || strings.HasSuffix(domain, ".gov") || strings.HasSuffix(domain, ".org") {
+		confidence += 0.15
 	}
 	
 	if confidence > 1.0 {

@@ -7,6 +7,7 @@ import './bookmark-dialog.ts'
 import './tag-cloud.ts'
 import './theme-toggle.ts'
 import './import-dialog.ts'
+import './export-dialog.ts'
 
 @customElement('app-root')
 export class AppRoot extends LitElement {
@@ -17,6 +18,7 @@ export class AppRoot extends LitElement {
   @state() private _favoritesOnly = false
   @state() private _showHelp = false
   @state() private _showImportDialog = false
+  @state() private _showExportDialog = false
 
   connectedCallback() {
     super.connectedCallback();
@@ -220,7 +222,8 @@ export class AppRoot extends LitElement {
       accent-color: var(--accent-primary);
     }
 
-    .import-button {
+    .import-button,
+    .export-button {
       width: 100%;
       background: var(--bg-card);
       border: 1px solid var(--accent-secondary);
@@ -235,7 +238,8 @@ export class AppRoot extends LitElement {
       letter-spacing: 0.5px;
     }
 
-    .import-button:hover {
+    .import-button:hover,
+    .export-button:hover {
       background: var(--accent-secondary);
       color: var(--bg-primary);
       box-shadow: var(--shadow-md);
@@ -444,6 +448,9 @@ export class AppRoot extends LitElement {
               <button class="import-button" @click=${this._handleShowImport}>
                 📥 Import Bookmarks
               </button>
+              <button class="export-button" @click=${this._handleShowExport}>
+                📤 Export Bookmarks
+              </button>
             </div>
 
             <div class="quick-actions">
@@ -614,6 +621,12 @@ export class AppRoot extends LitElement {
             @import-success=${this._handleImportSuccess}>
           </import-dialog>
         ` : ''}
+
+        ${this._showExportDialog ? html`
+          <export-dialog 
+            @close=${this._handleCloseExport}>
+          </export-dialog>
+        ` : ''}
       </div>
     `
   }
@@ -690,6 +703,14 @@ export class AppRoot extends LitElement {
 
   private _handleCloseImport() {
     this._showImportDialog = false
+  }
+
+  private _handleShowExport() {
+    this._showExportDialog = true
+  }
+
+  private _handleCloseExport() {
+    this._showExportDialog = false
   }
 
   private _handleImportSuccess(e: CustomEvent) {

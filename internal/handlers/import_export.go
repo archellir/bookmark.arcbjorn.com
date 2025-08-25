@@ -3,7 +3,9 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"net/http"
+	"strings"
 	"time"
 
 	"torimemo/internal/db"
@@ -48,6 +50,11 @@ func (h *ImportExportHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 // exportBookmarks handles GET /api/export
 func (h *ImportExportHandler) exportBookmarks(w http.ResponseWriter, r *http.Request) {
+	format := r.URL.Query().Get("format")
+	if format == "" {
+		format = "json"
+	}
+
 	// Get all bookmarks
 	bookmarks, err := h.bookmarkRepo.List(1, 10000, "", "", false) // Large limit for export
 	if err != nil {
@@ -55,6 +62,12 @@ func (h *ImportExportHandler) exportBookmarks(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	if format == "html" {
+		h.exportHTML(w, r, bookmarks.Bookmarks)
+		return
+	}
+
+	// JSON export (default)
 	// Get all tags
 	tagList, err := h.tagRepo.List("")
 	if err != nil {
@@ -81,7 +94,8 @@ func (h *ImportExportHandler) exportBookmarks(w http.ResponseWriter, r *http.Req
 		Tags:       tags,
 	}
 
-	// Set content disposition for download
+	// Set headers
+	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=torimemo-export-%s.json", 
 		time.Now().Format("2006-01-02")))
 
@@ -144,6 +158,75 @@ func (h *ImportExportHandler) importBookmarks(w http.ResponseWriter, r *http.Req
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
+}
+
+// exportHTML exports bookmarks as HTML (browser-compatible format)
+func (h *ImportExportHandler) exportHTML(w http.ResponseWriter, r *http.Request, bookmarks []models.Bookmark) {
+	// Set headers
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=torimemo-export-%s.html", 
+		time.Now().Format("2006-01-02")))
+
+	// Write HTML header
+	fmt.Fprintf(w, `<!DOCTYPE NETSCAPE-Bookmark-file-1>
+<!-- This is an automatically generated file.
+     It will be read and overwritten.
+     DO NOT EDIT! -->
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
+<TITLE>Torimemo Bookmarks</TITLE>
+<H1>Torimemo Bookmarks</H1>
+
+<DL><p>
+`)
+
+	// Group bookmarks by their first tag (or "Untagged")
+	tagGroups := make(map[string][]models.Bookmark)
+	for _, bookmark := range bookmarks {
+		tagName := "Untagged"
+		if len(bookmark.Tags) > 0 {
+			tagName = bookmark.Tags[0].Name
+		}
+		tagGroups[tagName] = append(tagGroups[tagName], bookmark)
+	}
+
+	// Write bookmark folders
+	for tagName, tagBookmarks := range tagGroups {
+		fmt.Fprintf(w, "    <DT><H3 ADD_DATE=\"%d\" LAST_MODIFIED=\"%d\">%s</H3>\n", 
+			time.Now().Unix(), time.Now().Unix(), html.EscapeString(tagName))
+		fmt.Fprintf(w, "    <DL><p>\n")
+		
+		for _, bookmark := range tagBookmarks {
+			addDate := bookmark.CreatedAt.Unix()
+			description := ""
+			if bookmark.Description != nil && *bookmark.Description != "" {
+				description = *bookmark.Description
+			}
+			
+			// Create tag list for description
+			var tagList []string
+			for _, tag := range bookmark.Tags {
+				tagList = append(tagList, tag.Name)
+			}
+			if len(tagList) > 0 {
+				if description != "" {
+					description += " | "
+				}
+				description += "Tags: " + strings.Join(tagList, ", ")
+			}
+			
+			fmt.Fprintf(w, "        <DT><A HREF=\"%s\" ADD_DATE=\"%d\">%s</A>\n", 
+				html.EscapeString(bookmark.URL), addDate, html.EscapeString(bookmark.Title))
+			
+			if description != "" {
+				fmt.Fprintf(w, "        <DD>%s\n", html.EscapeString(description))
+			}
+		}
+		
+		fmt.Fprintf(w, "    </DL><p>\n")
+	}
+
+	// Write HTML footer
+	fmt.Fprintf(w, "</DL><p>\n")
 }
 
 func (h *ImportExportHandler) writeError(w http.ResponseWriter, message string, statusCode int) {

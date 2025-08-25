@@ -155,6 +155,11 @@ export class ThemeToggle extends LitElement {
     themeManager.setTheme(themes[nextIndex]);
   }
 
+  // Public method for keyboard shortcuts
+  public toggleThemeViaKeyboard() {
+    this.toggleTheme();
+  }
+
   private getThemeIcon() {
     switch (this.currentTheme) {
       case 'light':

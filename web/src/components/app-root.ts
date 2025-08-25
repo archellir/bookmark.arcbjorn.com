@@ -14,6 +14,7 @@ export class AppRoot extends LitElement {
   @state() private _searchQuery = ''
   @state() private _tagFilter = ''
   @state() private _favoritesOnly = false
+  @state() private _showHelp = false
 
   connectedCallback() {
     super.connectedCallback();
@@ -30,6 +31,82 @@ export class AppRoot extends LitElement {
       updateTheme();
       themeManager.subscribe(updateTheme);
     });
+    
+    // Setup keyboard navigation
+    this._setupKeyboardNavigation();
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    document.removeEventListener('keydown', this._handleKeydown);
+  }
+
+  private _setupKeyboardNavigation() {
+    document.addEventListener('keydown', this._handleKeydown);
+  }
+
+  private _handleKeydown = (e: KeyboardEvent) => {
+    // Ignore if typing in input fields
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      return;
+    }
+
+    // Global keyboard shortcuts
+    if (e.key === '/' || (e.key === 'k' && (e.metaKey || e.ctrlKey))) {
+      // Focus search (/ or Cmd/Ctrl+K)
+      e.preventDefault();
+      this._focusSearch();
+    } else if (e.key === 'n' && (e.metaKey || e.ctrlKey)) {
+      // New bookmark (Cmd/Ctrl+N)
+      e.preventDefault();
+      this._handleAddBookmark();
+    } else if (e.key === 'Escape') {
+      // Close dialog, help panel, or clear search
+      e.preventDefault();
+      if (this._showDialog) {
+        this._handleCloseDialog();
+      } else if (this._showHelp) {
+        this._showHelp = false;
+      } else {
+        this._clearSearch();
+      }
+    } else if (e.key === 't' && (e.metaKey || e.ctrlKey)) {
+      // Toggle theme (Cmd/Ctrl+T)
+      e.preventDefault();
+      this._toggleTheme();
+    } else if (e.key === 'f' && (e.metaKey || e.ctrlKey)) {
+      // Toggle favorites filter (Cmd/Ctrl+F)
+      e.preventDefault();
+      this._favoritesOnly = !this._favoritesOnly;
+    } else if (e.key === '?' || (e.key === 'h' && (e.metaKey || e.ctrlKey))) {
+      // Show help (? or Cmd/Ctrl+H)
+      e.preventDefault();
+      this._showHelp = !this._showHelp;
+    }
+  }
+
+  private _focusSearch() {
+    const searchInput = this.shadowRoot?.querySelector('app-header')?.shadowRoot?.querySelector('.search-input') as HTMLInputElement;
+    if (searchInput) {
+      searchInput.focus();
+      searchInput.select();
+    }
+  }
+
+  private _clearSearch() {
+    const searchInput = this.shadowRoot?.querySelector('app-header')?.shadowRoot?.querySelector('.search-input') as HTMLInputElement;
+    if (searchInput) {
+      searchInput.value = '';
+      searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      searchInput.blur();
+    }
+  }
+
+  private _toggleTheme() {
+    const themeToggle = this.shadowRoot?.querySelector('theme-toggle') as any;
+    if (themeToggle?.toggleThemeViaKeyboard) {
+      themeToggle.toggleThemeViaKeyboard();
+    }
   }
 
   static styles = css`
@@ -181,6 +258,99 @@ export class AppRoot extends LitElement {
       line-height: 1.4;
     }
 
+    .help-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1001;
+    }
+
+    .help-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 1rem;
+      padding: 2rem;
+      width: 90%;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .help-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--accent-primary);
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .help-section {
+      margin-bottom: 2rem;
+    }
+
+    .help-section-title {
+      font-size: 1.125rem;
+      font-weight: bold;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+
+    .help-shortcuts {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .help-shortcut {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem;
+      background: var(--bg-secondary);
+      border-radius: 0.5rem;
+    }
+
+    .help-keys {
+      display: flex;
+      gap: 0.25rem;
+    }
+
+    .help-key {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 0.25rem;
+      padding: 0.25rem 0.5rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .help-description {
+      color: var(--text-primary);
+      font-size: 0.875rem;
+    }
+
+    .help-close {
+      background: var(--accent-primary);
+      color: var(--bg-primary);
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 1.5rem;
+      width: 100%;
+    }
+
     @media (max-width: 768px) {
       .main-content {
         grid-template-columns: 1fr;
@@ -192,6 +362,12 @@ export class AppRoot extends LitElement {
       
       .content {
         order: 1;
+      }
+
+      .help-shortcut {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
       }
     }
   `
@@ -260,6 +436,134 @@ export class AppRoot extends LitElement {
             @save=${this._handleSaveBookmark}>
           </bookmark-dialog>
         ` : ''}
+
+        ${this._showHelp ? html`
+          <div class="help-overlay" @click=${this._handleHelpOverlayClick}>
+            <div class="help-panel" @click=${(e: Event) => e.stopPropagation()}>
+              <h2 class="help-title">⌨️ Keyboard Shortcuts</h2>
+              
+              <div class="help-section">
+                <h3 class="help-section-title">Global</h3>
+                <div class="help-shortcuts">
+                  <div class="help-shortcut">
+                    <div class="help-keys">
+                      <span class="help-key">/</span>
+                      <span>or</span>
+                      <span class="help-key">Cmd</span>
+                      <span class="help-key">K</span>
+                    </div>
+                    <span class="help-description">Focus search</span>
+                  </div>
+                  <div class="help-shortcut">
+                    <div class="help-keys">
+                      <span class="help-key">Cmd</span>
+                      <span class="help-key">N</span>
+                    </div>
+                    <span class="help-description">Add new bookmark</span>
+                  </div>
+                  <div class="help-shortcut">
+                    <div class="help-keys">
+                      <span class="help-key">Cmd</span>
+                      <span class="help-key">T</span>
+                    </div>
+                    <span class="help-description">Toggle theme</span>
+                  </div>
+                  <div class="help-shortcut">
+                    <div class="help-keys">
+                      <span class="help-key">Cmd</span>
+                      <span class="help-key">F</span>
+                    </div>
+                    <span class="help-description">Toggle favorites filter</span>
+                  </div>
+                  <div class="help-shortcut">
+                    <div class="help-keys">
+                      <span class="help-key">Escape</span>
+                    </div>
+                    <span class="help-description">Close dialog / Clear search</span>
+                  </div>
+                  <div class="help-shortcut">
+                    <div class="help-keys">
+                      <span class="help-key">?</span>
+                    </div>
+                    <span class="help-description">Show this help</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="help-section">
+                <h3 class="help-section-title">Bookmark List</h3>
+                <div class="help-shortcuts">
+                  <div class="help-shortcut">
+                    <div class="help-keys">
+                      <span class="help-key">↑</span>
+                      <span class="help-key">↓</span>
+                      <span>or</span>
+                      <span class="help-key">J</span>
+                      <span class="help-key">K</span>
+                    </div>
+                    <span class="help-description">Navigate bookmarks</span>
+                  </div>
+                  <div class="help-shortcut">
+                    <div class="help-keys">
+                      <span class="help-key">Enter</span>
+                    </div>
+                    <span class="help-description">Open bookmark</span>
+                  </div>
+                  <div class="help-shortcut">
+                    <div class="help-keys">
+                      <span class="help-key">F</span>
+                    </div>
+                    <span class="help-description">Toggle favorite</span>
+                  </div>
+                  <div class="help-shortcut">
+                    <div class="help-keys">
+                      <span class="help-key">E</span>
+                    </div>
+                    <span class="help-description">Edit bookmark</span>
+                  </div>
+                  <div class="help-shortcut">
+                    <div class="help-keys">
+                      <span class="help-key">D</span>
+                    </div>
+                    <span class="help-description">Delete bookmark</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="help-section">
+                <h3 class="help-section-title">Tag Navigation</h3>
+                <div class="help-shortcuts">
+                  <div class="help-shortcut">
+                    <div class="help-keys">
+                      <span class="help-key">←</span>
+                      <span class="help-key">→</span>
+                      <span>or</span>
+                      <span class="help-key">H</span>
+                      <span class="help-key">L</span>
+                    </div>
+                    <span class="help-description">Navigate tags</span>
+                  </div>
+                  <div class="help-shortcut">
+                    <div class="help-keys">
+                      <span class="help-key">Enter</span>
+                    </div>
+                    <span class="help-description">Select tag filter</span>
+                  </div>
+                  <div class="help-shortcut">
+                    <div class="help-keys">
+                      <span class="help-key">Escape</span>
+                    </div>
+                    <span class="help-description">Clear tag filter</span>
+                  </div>
+                </div>
+              </div>
+
+              <button class="help-close" @click=${this._closeHelp}>
+                Got it!
+              </button>
+            </div>
+          </div>
+        ` : ''}
       </div>
     `
   }
@@ -320,5 +624,13 @@ export class AppRoot extends LitElement {
     // Refresh tag cloud when bookmark is deleted
     const tagCloud = this.shadowRoot?.querySelector('tag-cloud') as any
     tagCloud?.loadTags()
+  }
+
+  private _handleHelpOverlayClick() {
+    this._showHelp = false
+  }
+
+  private _closeHelp() {
+    this._showHelp = false
   }
 }

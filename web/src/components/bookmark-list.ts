@@ -15,6 +15,7 @@ export class BookmarkList extends LitElement {
     hasMore: false,
     page: 1
   }
+  @state() private _selectedIndex = -1
 
   @property() searchQuery = ''
   @property() tagFilter = ''
@@ -93,6 +94,20 @@ export class BookmarkList extends LitElement {
       grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     }
 
+    bookmark-item {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    bookmark-item.selected {
+      transform: scale(1.02);
+      box-shadow: 0 0 0 2px var(--accent-primary);
+      border-radius: 0.75rem;
+    }
+
+    :host(:focus) {
+      outline: none;
+    }
+
     .stats {
       display: flex;
       justify-content: space-between;
@@ -168,6 +183,131 @@ export class BookmarkList extends LitElement {
   connectedCallback() {
     super.connectedCallback()
     this.loadBookmarks()
+    this._setupKeyboardNavigation()
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback()
+    this.removeEventListener('keydown', this._handleKeydown)
+  }
+
+  private _setupKeyboardNavigation() {
+    this.addEventListener('keydown', this._handleKeydown)
+    this.tabIndex = 0 // Make the component focusable
+  }
+
+  private _handleKeydown = (e: KeyboardEvent) => {
+    if (this._bookmarks.length === 0) return
+
+    switch (e.key) {
+      case 'ArrowDown':
+      case 'j':
+        e.preventDefault()
+        this._selectedIndex = Math.min(this._selectedIndex + 1, this._bookmarks.length - 1)
+        this._scrollToSelected()
+        break
+      case 'ArrowUp':
+      case 'k':
+        e.preventDefault()
+        this._selectedIndex = Math.max(this._selectedIndex - 1, 0)
+        this._scrollToSelected()
+        break
+      case 'Enter':
+        e.preventDefault()
+        if (this._selectedIndex >= 0) {
+          const bookmark = this._bookmarks[this._selectedIndex]
+          window.open(bookmark.url, '_blank')
+        }
+        break
+      case 'f':
+        e.preventDefault()
+        if (this._selectedIndex >= 0) {
+          this._toggleFavorite(this._bookmarks[this._selectedIndex].id)
+        }
+        break
+      case 'e':
+        e.preventDefault()
+        if (this._selectedIndex >= 0) {
+          this._editBookmark(this._bookmarks[this._selectedIndex])
+        }
+        break
+      case 'd':
+        e.preventDefault()
+        if (this._selectedIndex >= 0) {
+          this._deleteBookmark(this._bookmarks[this._selectedIndex].id)
+        }
+        break
+    }
+  }
+
+  private _scrollToSelected() {
+    const bookmarkItems = this.shadowRoot?.querySelectorAll('bookmark-item')
+    if (bookmarkItems && this._selectedIndex >= 0) {
+      bookmarkItems[this._selectedIndex]?.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      })
+    }
+  }
+
+  private async _toggleFavorite(bookmarkId: number) {
+    const bookmark = this._bookmarks.find(b => b.id === bookmarkId)
+    if (!bookmark) return
+
+    try {
+      const updatedBookmark = await apiService.updateBookmark(bookmarkId, {
+        is_favorite: !bookmark.is_favorite
+      })
+
+      this._bookmarks = this._bookmarks.map(b => 
+        b.id === bookmarkId ? updatedBookmark : b
+      )
+
+      if (updatedBookmark.is_favorite) {
+        this._stats.favorites++
+      } else {
+        this._stats.favorites--
+      }
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error)
+    }
+  }
+
+  private _editBookmark(bookmark: Bookmark) {
+    this.dispatchEvent(new CustomEvent('edit-bookmark', {
+      detail: { bookmark },
+      bubbles: true
+    }))
+  }
+
+  private async _deleteBookmark(bookmarkId: number) {
+    const bookmark = this._bookmarks.find(b => b.id === bookmarkId)
+    if (!bookmark) return
+    
+    if (!confirm(`Delete "${bookmark.title}"?`)) return
+
+    try {
+      await apiService.deleteBookmark(bookmarkId)
+      
+      this._bookmarks = this._bookmarks.filter(b => b.id !== bookmarkId)
+      
+      this._stats.total--
+      if (bookmark.is_favorite) {
+        this._stats.favorites--
+      }
+
+      // Adjust selected index if needed
+      if (this._selectedIndex >= this._bookmarks.length) {
+        this._selectedIndex = this._bookmarks.length - 1
+      }
+
+      this.dispatchEvent(new CustomEvent('bookmark-deleted', {
+        bubbles: true,
+        detail: { bookmark }
+      }))
+    } catch (error) {
+      console.error('Failed to delete bookmark:', error)
+    }
   }
 
   updated(changedProperties: Map<string, any>) {
@@ -297,9 +437,10 @@ export class BookmarkList extends LitElement {
       </div>
 
       <div class="bookmark-grid">
-        ${this._bookmarks.map(bookmark => html`
+        ${this._bookmarks.map((bookmark, index) => html`
           <bookmark-item 
             .bookmark=${bookmark}
+            class=${index === this._selectedIndex ? 'selected' : ''}
             @toggle-favorite=${this._handleToggleFavorite}
             @delete=${this._handleDelete}
             @edit=${this._handleEdit}>

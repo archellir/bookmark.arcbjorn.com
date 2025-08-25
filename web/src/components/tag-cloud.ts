@@ -8,6 +8,7 @@ export class TagCloud extends LitElement {
   @state() private _tags: Array<{ name: string; count: number; size: number; color: string }> = []
   @state() private _loading = false
   @state() private _error: string | null = null
+  @state() private _selectedTagIndex = -1
 
   static styles = css`
     :host {
@@ -85,6 +86,17 @@ export class TagCloud extends LitElement {
       transform: translateY(-1px);
     }
 
+    .cloud-tag.keyboard-selected {
+      background: var(--bg-card-hover);
+      border-color: var(--accent-primary);
+      transform: translateY(-1px);
+      box-shadow: 0 0 0 1px var(--accent-primary);
+    }
+
+    :host(:focus) {
+      outline: none;
+    }
+
     .cloud-tag:before {
       content: '';
       position: absolute;
@@ -126,6 +138,44 @@ export class TagCloud extends LitElement {
   connectedCallback() {
     super.connectedCallback()
     this.loadTags()
+    this._setupKeyboardNavigation()
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback()
+    this.removeEventListener('keydown', this._handleKeydown)
+  }
+
+  private _setupKeyboardNavigation() {
+    this.addEventListener('keydown', this._handleKeydown)
+    this.tabIndex = 0
+  }
+
+  private _handleKeydown = (e: KeyboardEvent) => {
+    if (this._tags.length === 0) return
+
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'l':
+        e.preventDefault()
+        this._selectedTagIndex = Math.min(this._selectedTagIndex + 1, this._tags.length - 1)
+        break
+      case 'ArrowLeft':
+      case 'h':
+        e.preventDefault()
+        this._selectedTagIndex = Math.max(this._selectedTagIndex - 1, 0)
+        break
+      case 'Enter':
+        e.preventDefault()
+        if (this._selectedTagIndex >= 0) {
+          this._selectTag(this._tags[this._selectedTagIndex].name)
+        }
+        break
+      case 'Escape':
+        e.preventDefault()
+        this._clearFilter()
+        break
+    }
   }
 
   async loadTags() {
@@ -172,9 +222,9 @@ export class TagCloud extends LitElement {
         ` : ''}
         
         <div class="tag-cloud">
-          ${this._tags.map(tag => html`
+          ${this._tags.map((tag, index) => html`
             <button 
-              class="cloud-tag ${this.selectedTag === tag.name ? 'selected' : ''}"
+              class="cloud-tag ${this.selectedTag === tag.name ? 'selected' : ''} ${index === this._selectedTagIndex ? 'keyboard-selected' : ''}"
               style="font-size: ${0.7 + (tag.size * 0.4)}rem"
               @click=${() => this._selectTag(tag.name)}>
               ${tag.name}<span class="tag-count">${tag.count}</span>

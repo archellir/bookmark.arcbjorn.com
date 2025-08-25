@@ -1,9 +1,13 @@
 import { LitElement, html, css } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
+import { searchSuggestionsService } from '../services/search-suggestions.ts'
+import './search-suggestions.ts'
 
 @customElement('app-header')
 export class AppHeader extends LitElement {
   @state() private _searchQuery = ''
+  @state() private _showSuggestions = false
+  @state() private _selectedSuggestionIndex = -1
 
   static styles = css`
     :host {
@@ -121,7 +125,16 @@ export class AppHeader extends LitElement {
             .value=${this._searchQuery}
             @input=${this._handleSearch}
             @keydown=${this._handleKeydown}
+            @focus=${this._handleSearchFocus}
+            @blur=${this._handleSearchBlur}
           />
+          <search-suggestions
+            .query=${this._searchQuery}
+            .visible=${this._showSuggestions}
+            .selectedIndex=${this._selectedSuggestionIndex}
+            @suggestion-selected=${this._handleSuggestionSelected}
+            @suggestions-close=${this._handleSuggestionsClose}
+          ></search-suggestions>
         </div>
         
         <button class="add-button" @click=${this._handleAdd}>
@@ -134,17 +147,70 @@ export class AppHeader extends LitElement {
   private _handleSearch(e: Event) {
     const input = e.target as HTMLInputElement
     this._searchQuery = input.value
-    // TODO: Dispatch search event
+    this._showSuggestions = this._searchQuery.length > 0 || this._showSuggestions
+    
+    // Add to search history if it's a substantial query
+    if (this._searchQuery.trim().length > 2) {
+      searchSuggestionsService.addSearchQuery(this._searchQuery)
+    }
+    
+    // Dispatch search event with debouncing
     this.dispatchEvent(new CustomEvent('search', {
       detail: { query: this._searchQuery }
     }))
   }
 
   private _handleKeydown(e: KeyboardEvent) {
+    const suggestionsElement = this.shadowRoot?.querySelector('search-suggestions') as any
+    
+    // Let suggestions handle navigation keys first
+    if (this._showSuggestions && suggestionsElement) {
+      const handled = suggestionsElement.handleKeyDown(e)
+      if (handled) {
+        return
+      }
+    }
+    
     if (e.key === 'Escape') {
       this._searchQuery = ''
+      this._showSuggestions = false
       ;(e.target as HTMLInputElement).blur()
+    } else if (e.key === 'ArrowDown' && !this._showSuggestions) {
+      // Show suggestions on arrow down when not visible
+      this._showSuggestions = true
     }
+  }
+
+  private _handleSearchFocus() {
+    this._showSuggestions = true
+  }
+
+  private _handleSearchBlur(_e: FocusEvent) {
+    // Use setTimeout to allow clicking on suggestions
+    setTimeout(() => {
+      this._showSuggestions = false
+      this._selectedSuggestionIndex = -1
+    }, 150)
+  }
+
+  private _handleSuggestionSelected(e: CustomEvent) {
+    const { suggestion } = e.detail
+    this._searchQuery = suggestion.query
+    this._showSuggestions = false
+    this._selectedSuggestionIndex = -1
+    
+    // Add to search history
+    searchSuggestionsService.addSearchQuery(suggestion.query)
+    
+    // Dispatch search event
+    this.dispatchEvent(new CustomEvent('search', {
+      detail: { query: suggestion.query }
+    }))
+  }
+
+  private _handleSuggestionsClose() {
+    this._showSuggestions = false
+    this._selectedSuggestionIndex = -1
   }
 
   private _handleAdd() {

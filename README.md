@@ -82,7 +82,7 @@ kubectl apply -f k8s.yaml
 
 ## 🎯 Performance
 
-- **Binary Size**: ~15MB (with embedded frontend)
+- **Binary Size**: 12MB (with embedded frontend + AI)
 - **Memory Usage**: <50MB RAM
 - **Cold Start**: <100ms
 - **Search Latency**: <10ms for 10k+ bookmarks
@@ -104,6 +104,19 @@ go run main.go
 ```
 
 ## 📦 Deployment Options
+
+### Single Binary Deployment
+
+The simplest deployment - just copy the binary:
+
+```bash
+# Build single binary (includes frontend)
+./build.sh
+
+# Deploy anywhere - single 12MB binary
+scp torimemo user@server:/usr/local/bin/
+ssh user@server 'torimemo'
+```
 
 ### Production Deployment
 
@@ -149,15 +162,41 @@ docker-compose -f docker-compose.prod.yml up -d
 - [ ] Monitor health endpoint at `/api/health`
 - [ ] Set appropriate `LOG_LEVEL` (WARN for production)
 
-## 🤖 AI Categorization (Coming Soon)
+## 🤖 AI Categorization
 
 Three-layer AI system for intelligent bookmark categorization:
 
-1. **Rule-based**: Domain patterns, URL analysis
-2. **FastText**: Lightweight text classification  
-3. **ONNX Models**: Advanced content understanding
+1. **Rule-based**: Domain patterns, URL analysis (always active)
+2. **FastText**: Lightweight text classification (optional)
+3. **ONNX Models**: Advanced content understanding (optional)
 
-Learning system adapts to user behavior and improves suggestions over time.
+### Quick AI Setup
+
+```bash
+# Create model directories
+mkdir -p ./models/fasttext ./models/onnx
+
+# Start application (Layer 1 works immediately)
+./torimemo
+
+# Check AI status
+curl http://localhost:8080/api/ai/status
+
+# Test categorization
+curl -X POST http://localhost:8080/api/ai/categorize \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://github.com","title":"GitHub","description":"Code repository"}'
+```
+
+### AI API Endpoints
+
+- `GET /api/ai/status` - Check AI model status
+- `POST /api/ai/categorize` - Get tag suggestions
+- `GET /api/ai/duplicates/{id}` - Find similar bookmarks
+- `GET /api/ai/clusters` - Get bookmark clusters
+- `GET /api/ai/predict/tags` - Predictive tag suggestions
+
+**📖 Full AI Setup Guide**: See [AI_SETUP.md](AI_SETUP.md) for detailed model installation and configuration.
 
 ## 📄 License
 

@@ -1,29 +1,6 @@
 import { LitElement, html, css } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
-
-interface LoginRequest {
-  username: string
-  password: string
-}
-
-interface RegisterRequest {
-  username: string
-  email: string
-  password: string
-  full_name?: string
-}
-
-interface AuthResponse {
-  token: string
-  expires_at: string
-  user: {
-    id: number
-    username: string
-    email: string
-    full_name?: string
-    is_admin: boolean
-  }
-}
+import type { LoginRequest, RegisterRequest, AuthResponse } from '~/types'
 
 @customElement('auth-dialog')
 export class AuthDialog extends LitElement {

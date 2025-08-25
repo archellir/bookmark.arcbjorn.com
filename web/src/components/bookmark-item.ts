@@ -1,19 +1,9 @@
 import { LitElement, html, css } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
-import type { Bookmark } from '../services/api.ts'
-import { archiveService, type ArchivedContent } from '../services/archive.ts'
-import { apiService, type Folder } from '../services/api.ts'
+import type { Bookmark, Folder, BookmarkHealth, ArchivedContent } from '~/types'
+import { archiveService } from '@services/archive.ts'
+import { apiService } from '@services/api.ts'
 
-export interface BookmarkHealth {
-  id: number
-  url: string
-  status: 'healthy' | 'broken' | 'slow' | 'redirect' | 'unknown'
-  status_code: number
-  response_time_ms: number
-  redirect_url?: string
-  error?: string
-  last_checked: string
-}
 
 @customElement('bookmark-item')
 export class BookmarkItem extends LitElement {

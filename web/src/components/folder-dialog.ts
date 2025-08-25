@@ -1,12 +1,13 @@
 import { LitElement, html, css } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
-import { apiService, type Folder, type CreateFolderRequest, type UpdateFolderRequest } from '../services/api.ts'
+import { apiService, type ExtendedFolder } from '@services/api.ts'
+import type { CreateFolderRequest, UpdateFolderRequest } from '~/types'
 
 @customElement('folder-dialog')
 export class FolderDialog extends LitElement {
   @property({ type: Boolean }) open = false
-  @property({ type: Object }) folder: Folder | null = null
-  @property({ type: Object }) parentFolder: Folder | null = null
+  @property({ type: Object }) folder: ExtendedFolder | null = null
+  @property({ type: Object }) parentFolder: ExtendedFolder | null = null
   @state() private _name = ''
   @state() private _description = ''
   @state() private _color = '#666666'

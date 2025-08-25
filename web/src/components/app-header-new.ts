@@ -1,16 +1,9 @@
 import { LitElement, html, css } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
-// import { searchSuggestionsService } from '../services/search-suggestions.ts' // TODO: Integrate suggestions service
-import './search-suggestions.ts'
-import './auth-dialog.ts'
-
-interface User {
-  id: number
-  username: string
-  email: string
-  full_name?: string
-  is_admin: boolean
-}
+// import { searchSuggestionsService } from '@services/search-suggestions.ts' // TODO: Integrate suggestions service
+import '@components/search-suggestions.ts'
+import '@components/auth-dialog.ts'
+import type { User } from '~/types'
 
 @customElement('app-header-new')
 export class AppHeaderNew extends LitElement {

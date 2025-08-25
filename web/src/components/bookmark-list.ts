@@ -2,6 +2,7 @@ import { LitElement, html, css } from 'lit'
 import { customElement, state, property } from 'lit/decorators.js'
 import { apiService, type Bookmark, type BookmarkListResponse } from '../services/api.ts'
 import './bookmark-item.ts'
+import './bulk-actions.ts'
 
 @customElement('bookmark-list')
 export class BookmarkList extends LitElement {
@@ -16,6 +17,9 @@ export class BookmarkList extends LitElement {
     page: 1
   }
   @state() private _selectedIndex = -1
+  @state() private _selectedBookmarks = new Set<number>()
+  @state() private _selectionMode = false
+  @state() private _availableTags: string[] = []
 
   @property() searchQuery = ''
   @property() tagFilter = ''
@@ -139,6 +143,31 @@ export class BookmarkList extends LitElement {
       letter-spacing: 1px;
     }
 
+    .bulk-select-button {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      padding: 0.5rem 1rem;
+      border-radius: 0.25rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .bulk-select-button:hover {
+      border-color: var(--accent-primary);
+      background: rgba(var(--accent-primary), 0.1);
+      color: var(--accent-primary);
+    }
+
+    .bulk-select-button.active {
+      background: var(--accent-primary);
+      color: var(--bg-primary);
+      border-color: var(--accent-primary);
+    }
+
     .load-more {
       text-align: center;
       margin-top: 2rem;
@@ -183,6 +212,7 @@ export class BookmarkList extends LitElement {
   connectedCallback() {
     super.connectedCallback()
     this.loadBookmarks()
+    this._loadAvailableTags()
     this._setupKeyboardNavigation()
   }
 
@@ -434,13 +464,30 @@ export class BookmarkList extends LitElement {
           <div class="stats-number">${this._stats.tags}</div>
           <div class="stats-label">Tags</div>
         </div>
+        <div class="stats-item">
+          <button class="bulk-select-button" @click=${this._toggleSelectionMode}>
+            ${this._selectionMode ? '✓ Exit Selection' : '☑️ Select Multiple'}
+          </button>
+        </div>
       </div>
+
+      ${this._selectedBookmarks.size > 0 ? html`
+        <bulk-actions
+          .selectedBookmarks=${this._getSelectedBookmarks()}
+          .availableTags=${this._availableTags}
+          @clear-selection=${this._clearSelection}
+          @bulk-action-complete=${this._handleBulkActionComplete}>
+        </bulk-actions>
+      ` : ''}
 
       <div class="bookmark-grid">
         ${this._bookmarks.map((bookmark, index) => html`
           <bookmark-item 
             .bookmark=${bookmark}
+            .isSelected=${this._selectedBookmarks.has(bookmark.id)}
+            .selectionMode=${this._selectionMode}
             class=${index === this._selectedIndex ? 'selected' : ''}
+            @selection-toggle=${this._handleSelectionToggle}
             @toggle-favorite=${this._handleToggleFavorite}
             @delete=${this._handleDelete}
             @edit=${this._handleEdit}>
@@ -521,5 +568,58 @@ export class BookmarkList extends LitElement {
       detail: e.detail,
       bubbles: true
     }))
+  }
+
+  // Bulk operations methods
+  private _toggleSelectionMode() {
+    this._selectionMode = !this._selectionMode
+    if (!this._selectionMode) {
+      this._selectedBookmarks.clear()
+    }
+  }
+
+  private _handleSelectionToggle(e: CustomEvent) {
+    const { bookmark, selected } = e.detail
+    if (selected) {
+      this._selectedBookmarks.add(bookmark.id)
+    } else {
+      this._selectedBookmarks.delete(bookmark.id)
+    }
+    this.requestUpdate()
+  }
+
+  private _clearSelection() {
+    this._selectedBookmarks.clear()
+    this._selectionMode = false
+    this.requestUpdate()
+  }
+
+  private _getSelectedBookmarks(): Bookmark[] {
+    return this._bookmarks.filter(bookmark => this._selectedBookmarks.has(bookmark.id))
+  }
+
+  private _handleBulkActionComplete(e: CustomEvent) {
+    const { success, message } = e.detail
+    
+    // Refresh bookmarks after bulk action
+    this.loadBookmarks(true)
+    
+    // Dispatch event to parent for notification
+    this.dispatchEvent(new CustomEvent('bulk-action-result', {
+      detail: { success, message }
+    }))
+  }
+
+  // Load available tags for bulk actions
+  private async _loadAvailableTags() {
+    try {
+      const response = await fetch('/api/tags')
+      if (response.ok) {
+        const tags = await response.json()
+        this._availableTags = tags.map((tag: any) => tag.name)
+      }
+    } catch (error) {
+      console.error('Failed to load tags:', error)
+    }
   }
 }

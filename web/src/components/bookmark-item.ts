@@ -16,6 +16,8 @@ export interface BookmarkHealth {
 @customElement('bookmark-item')
 export class BookmarkItem extends LitElement {
   @property({ type: Object }) bookmark!: Bookmark
+  @property({ type: Boolean }) isSelected = false
+  @property({ type: Boolean }) selectionMode = false
   @state() private _health: BookmarkHealth | null = null
   @state() private _loadingHealth = false
 
@@ -57,6 +59,47 @@ export class BookmarkItem extends LitElement {
 
     .bookmark-card:hover:before {
       opacity: 1;
+    }
+
+    .bookmark-card.selected {
+      border-color: var(--accent-primary);
+      background: rgba(var(--accent-primary), 0.05);
+      box-shadow: var(--shadow-md);
+    }
+
+    .selection-checkbox {
+      position: absolute;
+      top: 0.75rem;
+      left: 0.75rem;
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border-color);
+      border-radius: 4px;
+      background: var(--bg-primary);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      z-index: 10;
+    }
+
+    :host([selectionMode]) .selection-checkbox,
+    .bookmark-card:hover .selection-checkbox {
+      opacity: 1;
+    }
+
+    .selection-checkbox.checked {
+      background: var(--accent-primary);
+      border-color: var(--accent-primary);
+      color: var(--bg-primary);
+      opacity: 1;
+    }
+
+    .selection-checkbox:hover {
+      border-color: var(--accent-primary);
+      background: rgba(var(--accent-primary), 0.1);
     }
 
     .bookmark-header {
@@ -373,7 +416,11 @@ export class BookmarkItem extends LitElement {
     const tagNames = this.bookmark.tags?.map(tag => tag.name) || []
 
     return html`
-      <div class="bookmark-card">
+      <div class="bookmark-card ${this.isSelected ? 'selected' : ''}">
+        <div class="selection-checkbox ${this.isSelected ? 'checked' : ''}" 
+             @click=${this._handleSelectionToggle}>
+          ${this.isSelected ? '✓' : ''}
+        </div>
         ${this._renderHealthIndicator()}
         <div class="bookmark-header">
           ${this.bookmark.favicon_url ? html`
@@ -434,6 +481,13 @@ export class BookmarkItem extends LitElement {
         </div>
       </div>
     `
+  }
+
+  private _handleSelectionToggle(e: Event) {
+    e.stopPropagation()
+    this.dispatchEvent(new CustomEvent('selection-toggle', {
+      detail: { bookmark: this.bookmark, selected: !this.isSelected }
+    }))
   }
 
   private _handleToggleFavorite() {

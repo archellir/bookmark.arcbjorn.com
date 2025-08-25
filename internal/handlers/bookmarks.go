@@ -204,6 +204,17 @@ func (h *BookmarkHandler) updateBookmark(w http.ResponseWriter, r *http.Request,
 		}
 	}
 
+	// Get original bookmark for learning feedback
+	var originalTags []string
+	if len(req.Tags) > 0 {
+		originalBookmark, err := h.repo.GetByID(id)
+		if err == nil && len(originalBookmark.Tags) > 0 {
+			for _, tag := range originalBookmark.Tags {
+				originalTags = append(originalTags, tag.Name)
+			}
+		}
+	}
+
 	bookmark, err := h.repo.Update(id, &req)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
@@ -216,6 +227,19 @@ func (h *BookmarkHandler) updateBookmark(w http.ResponseWriter, r *http.Request,
 		}
 		h.writeError(w, fmt.Sprintf("Failed to update bookmark: %v", err), http.StatusInternalServerError)
 		return
+	}
+
+	// Record learning feedback if tags were changed
+	if len(originalTags) > 0 && len(req.Tags) > 0 {
+		go func() {
+			correction := &models.TagCorrection{
+				BookmarkID:   id,
+				OriginalTags: originalTags,
+				FinalTags:    req.Tags,
+				CorrectionType: h.determineCorrectionType(originalTags, req.Tags),
+			}
+			h.learningRepo.SaveTagCorrection(correction)
+		}()
 	}
 
 	h.writeJSON(w, bookmark)
@@ -335,4 +359,44 @@ func (h *BookmarkHandler) writeError(w http.ResponseWriter, message string, stat
 	}
 	
 	json.NewEncoder(w).Encode(response)
+}
+
+// determineCorrectionType determines the type of tag correction
+func (h *BookmarkHandler) determineCorrectionType(originalTags, finalTags []string) string {
+	originalSet := make(map[string]bool)
+	finalSet := make(map[string]bool)
+	
+	for _, tag := range originalTags {
+		originalSet[tag] = true
+	}
+	
+	for _, tag := range finalTags {
+		finalSet[tag] = true
+	}
+	
+	var added, removed int
+	
+	// Count added tags
+	for _, tag := range finalTags {
+		if !originalSet[tag] {
+			added++
+		}
+	}
+	
+	// Count removed tags
+	for _, tag := range originalTags {
+		if !finalSet[tag] {
+			removed++
+		}
+	}
+	
+	if added > 0 && removed == 0 {
+		return "added"
+	} else if removed > 0 && added == 0 {
+		return "removed"
+	} else if added > 0 && removed > 0 {
+		return "modified"
+	}
+	
+	return "kept"
 }

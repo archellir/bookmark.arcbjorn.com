@@ -49,6 +49,7 @@ func main() {
 	importExportHandler := handlers.NewImportExportHandler(bookmarkRepo, tagRepo)
 	analyticsHandler := handlers.NewAnalyticsHandler(bookmarkRepo, tagRepo, database)
 	advancedSearchHandler := handlers.NewAdvancedSearchHandler(bookmarkRepo)
+	learningHandler := handlers.NewLearningHandler(bookmarkRepo, learningRepo)
 
 	// Initialize logger
 	logLevel := os.Getenv("LOG_LEVEL")
@@ -87,6 +88,8 @@ func main() {
 	mux.Handle("/api/import", importExportHandler)
 	mux.Handle("/api/analytics", analyticsHandler)
 	mux.Handle("/api/search/advanced", advancedSearchHandler)
+	mux.Handle("/api/learning", learningHandler)
+	mux.Handle("/api/learning/", learningHandler)
 	mux.HandleFunc("/api/health", handleHealth)
 	mux.HandleFunc("/api/stats", handleStats(database))
 

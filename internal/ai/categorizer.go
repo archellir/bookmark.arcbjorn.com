@@ -29,20 +29,22 @@ type ContentRule struct {
 
 // Categorizer handles AI-powered bookmark categorization
 type Categorizer struct {
-	domainRules      []DomainRule
-	contentRules     []ContentRule
-	contentFetcher   *services.ContentFetcher
-	learningRepo     *db.LearningRepository
-	confidenceTuner  *ConfidenceTuner
+	domainRules       []DomainRule
+	contentRules      []ContentRule
+	contentFetcher    *services.ContentFetcher
+	learningRepo      *db.LearningRepository
+	confidenceTuner   *ConfidenceTuner
+	semanticAnalyzer  *SemanticAnalyzer
 }
 
 // NewCategorizer creates a new AI categorizer
 func NewCategorizer() *Categorizer {
 	c := &Categorizer{
-		domainRules:     getDefaultDomainRules(),
-		contentRules:    getDefaultContentRules(),
-		contentFetcher:  services.NewContentFetcher(),
-		learningRepo:    nil, // Will be set when needed
+		domainRules:      getDefaultDomainRules(),
+		contentRules:     getDefaultContentRules(),
+		contentFetcher:   services.NewContentFetcher(),
+		learningRepo:     nil, // Will be set when needed
+		semanticAnalyzer: NewSemanticAnalyzer(),
 	}
 	return c
 }
@@ -50,11 +52,12 @@ func NewCategorizer() *Categorizer {
 // NewCategorizerWithLearning creates a categorizer with learning system integration
 func NewCategorizerWithLearning(learningRepo *db.LearningRepository) *Categorizer {
 	c := &Categorizer{
-		domainRules:     getDefaultDomainRules(),
-		contentRules:    getDefaultContentRules(),
-		contentFetcher:  services.NewContentFetcher(),
-		learningRepo:    learningRepo,
-		confidenceTuner: NewConfidenceTuner(learningRepo),
+		domainRules:      getDefaultDomainRules(),
+		contentRules:     getDefaultContentRules(),
+		contentFetcher:   services.NewContentFetcher(),
+		learningRepo:     learningRepo,
+		confidenceTuner:  NewConfidenceTuner(learningRepo),
+		semanticAnalyzer: NewSemanticAnalyzer(),
 	}
 	return c
 }
@@ -147,6 +150,26 @@ func (c *Categorizer) CategorizeBookmark(bookmark *models.Bookmark) (*TagSuggest
 	// Apply URL path analysis
 	pathTags := c.categorizeURLPath(parsedURL.Path)
 	suggestions.Tags = append(suggestions.Tags, pathTags...)
+
+	// Apply semantic analysis for enhanced tag suggestions
+	if c.semanticAnalyzer != nil {
+		fullContent := title + " " + description
+		semanticSuggestions := c.semanticAnalyzer.AnalyzeSemanticContent(title, description, bookmark.URL)
+		
+		// Convert semantic suggestions to regular tags with confidence boost
+		for _, semSugg := range semanticSuggestions {
+			if semSugg.Confidence > 0.5 { // Only high-confidence semantic suggestions
+				suggestions.Tags = append(suggestions.Tags, semSugg.Tag)
+			}
+		}
+		
+		// Enhance existing suggestions with semantic analysis
+		enhancedSuggestions := c.semanticAnalyzer.EnhanceExistingSuggestions([]TagSuggestion{*suggestions}, fullContent)
+		if len(enhancedSuggestions) > 0 {
+			*suggestions = enhancedSuggestions[0]
+			suggestions.Source += "+semantic"
+		}
+	}
 
 	// Remove duplicates and set category
 	suggestions.Tags = c.removeDuplicates(suggestions.Tags)

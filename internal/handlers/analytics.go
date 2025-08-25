@@ -146,8 +146,8 @@ func (h *AnalyticsHandler) getAnalytics() (*AnalyticsResponse, error) {
 }
 
 func (h *AnalyticsHandler) getOverviewMetrics() (*OverviewMetrics, error) {
-	// Get total bookmarks
-	bookmarks, err := h.bookmarkRepo.List(1, 10000, "", "", false)
+	// Get total bookmarks (use userID 0 for admin/global analytics)
+	bookmarks, err := h.bookmarkRepo.List(1, 10000, "", "", false, 0)
 	if err != nil {
 		return nil, err
 	}

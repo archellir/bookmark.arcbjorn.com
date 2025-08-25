@@ -20,6 +20,7 @@ export class BookmarkList extends LitElement {
   @state() private _selectedBookmarks = new Set<number>()
   @state() private _selectionMode = false
   @state() private _availableTags: string[] = []
+  @state() private _searchResults = new Map<number, any>()
 
   @property() searchQuery = ''
   @property() tagFilter = ''
@@ -369,6 +370,8 @@ export class BookmarkList extends LitElement {
       } else if (this.searchQuery && this.searchQuery.trim()) {
         // Use full-text search if search query exists
         const searchResponse = await apiService.searchBookmarks(this.searchQuery, 20)
+        // Store search results with snippets for highlighting
+        this._searchResults = new Map(searchResponse.results.map(r => [r.id, r]))
         // Convert SearchResult[] to BookmarkListResponse format
         response = {
           bookmarks: searchResponse.results,
@@ -381,6 +384,8 @@ export class BookmarkList extends LitElement {
           favorite_count: searchResponse.results.filter(b => b.is_favorite).length
         }
       } else {
+        // Clear search results when not searching
+        this._searchResults.clear()
         response = await apiService.getBookmarks({
           page: this._stats.page,
           limit: 20,
@@ -492,6 +497,7 @@ export class BookmarkList extends LitElement {
             .bookmark=${bookmark}
             .isSelected=${this._selectedBookmarks.has(bookmark.id)}
             .selectionMode=${this._selectionMode}
+            .searchSnippet=${this._searchResults.get(bookmark.id)?.snippet || ''}
             class=${index === this._selectedIndex ? 'selected' : ''}
             @selection-toggle=${this._handleSelectionToggle}
             @toggle-favorite=${this._handleToggleFavorite}

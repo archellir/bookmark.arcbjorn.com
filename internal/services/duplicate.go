@@ -73,7 +73,7 @@ func (s *DuplicateService) CheckForDuplicates(url, title string) (*DuplicateChec
 		
 		// Get full bookmark details for similar URLs
 		for _, similarURL := range similarURLs {
-			bookmark, err := s.bookmarkRepo.GetByURL(similarURL)
+			bookmark, err := s.bookmarkRepo.GetByURLAnyUser(similarURL)
 			if err == nil {
 				result.SimilarBookmarks = append(result.SimilarBookmarks, *bookmark)
 			}
@@ -92,7 +92,7 @@ func (s *DuplicateService) CheckForDuplicates(url, title string) (*DuplicateChec
 // FindAllDuplicates finds all duplicate bookmarks in the database
 func (s *DuplicateService) FindAllDuplicates() ([]DuplicateGroup, error) {
 	// Get all bookmarks
-	response, err := s.bookmarkRepo.List(1, 10000, "", "", false) // Get all
+	response, err := s.bookmarkRepo.ListAllUsers(1, 10000, "", "", false) // Get all
 	if err != nil {
 		return nil, fmt.Errorf("failed to get bookmarks: %w", err)
 	}
@@ -146,7 +146,7 @@ type DuplicateGroup struct {
 // MergeDuplicates merges duplicate bookmarks by keeping the primary and removing duplicates
 func (s *DuplicateService) MergeDuplicates(primaryID int, duplicateIDs []int, mergeTags bool, mergeMetadata bool) error {
 	// Get primary bookmark
-	primary, err := s.bookmarkRepo.GetByID(primaryID)
+	primary, err := s.bookmarkRepo.GetByID(primaryID, 0) // TODO: Pass actual user ID
 	if err != nil {
 		return fmt.Errorf("failed to get primary bookmark: %w", err)
 	}
@@ -154,7 +154,7 @@ func (s *DuplicateService) MergeDuplicates(primaryID int, duplicateIDs []int, me
 	// Get duplicates
 	var duplicates []*models.Bookmark
 	for _, id := range duplicateIDs {
-		duplicate, err := s.bookmarkRepo.GetByID(id)
+		duplicate, err := s.bookmarkRepo.GetByID(id, 0) // TODO: Pass actual user ID
 		if err != nil {
 			continue // Skip if not found
 		}
@@ -217,7 +217,7 @@ func (s *DuplicateService) MergeDuplicates(primaryID int, duplicateIDs []int, me
 
 	// Update primary bookmark if we have changes
 	if updateReq.Title != nil || updateReq.Description != nil || updateReq.Tags != nil {
-		_, err = s.bookmarkRepo.Update(primaryID, updateReq)
+		_, err = s.bookmarkRepo.Update(primaryID, updateReq, 0) // TODO: Pass actual user ID
 		if err != nil {
 			return fmt.Errorf("failed to update primary bookmark: %w", err)
 		}
@@ -225,7 +225,7 @@ func (s *DuplicateService) MergeDuplicates(primaryID int, duplicateIDs []int, me
 
 	// Delete duplicates
 	for _, id := range duplicateIDs {
-		err = s.bookmarkRepo.Delete(id)
+		err = s.bookmarkRepo.Delete(id, 0) // TODO: Pass actual user ID
 		if err != nil {
 			// Log but don't fail the whole operation
 			fmt.Printf("Warning: failed to delete duplicate %d: %v\n", id, err)
@@ -238,11 +238,11 @@ func (s *DuplicateService) MergeDuplicates(primaryID int, duplicateIDs []int, me
 // Helper methods
 
 func (s *DuplicateService) findExactDuplicate(url string) (*models.Bookmark, error) {
-	return s.bookmarkRepo.GetByURL(url)
+	return s.bookmarkRepo.GetByURLAnyUser(url)
 }
 
 func (s *DuplicateService) getAllBookmarkURLs() ([]string, error) {
-	response, err := s.bookmarkRepo.List(1, 10000, "", "", false)
+	response, err := s.bookmarkRepo.ListAllUsers(1, 10000, "", "", false)
 	if err != nil {
 		return nil, err
 	}

@@ -1,7 +1,7 @@
 package ai
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"math"
 	"os"
@@ -143,6 +143,9 @@ func NewONNXInferenceEngine(modelPath string) *ONNXInferenceEngine {
 
 // Initialize loads ONNX models and prepares the inference engine
 func (oe *ONNXInferenceEngine) Initialize() error {
+	// TODO: Use os.Root methods when available in stable Go 1.25 release
+	// for safer file operations with security boundaries
+	
 	// Create model directory if it doesn't exist
 	if err := os.MkdirAll(oe.modelPath, 0755); err != nil {
 		return fmt.Errorf("failed to create model directory: %w", err)
@@ -274,7 +277,7 @@ func (oe *ONNXInferenceEngine) createFallbackModels() error {
 			"mode":       "rule_based_fallback",
 		}
 		
-		data, _ := json.MarshalIndent(metadata, "", "  ")
+		data, _ := json.Marshal(metadata)
 		if err := os.WriteFile(metaFile, data, 0644); err != nil {
 			return fmt.Errorf("failed to create metadata for %s: %w", model, err)
 		}
@@ -764,7 +767,7 @@ func (oe *ONNXInferenceEngine) loadVocabulary(filename string) error {
 }
 
 func (oe *ONNXInferenceEngine) saveVocabulary(filename string) error {
-	data, err := json.MarshalIndent(oe.textEncoder.vocabulary, "", "  ")
+	data, err := json.Marshal(oe.textEncoder.vocabulary)
 	if err != nil {
 		return err
 	}

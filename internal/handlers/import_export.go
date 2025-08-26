@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"html"
 	"net/http"
@@ -100,7 +100,7 @@ func (h *ImportExportHandler) exportBookmarks(w http.ResponseWriter, r *http.Req
 		time.Now().Format("2006-01-02")))
 
 	// Encode and send
-	if err := json.NewEncoder(w).Encode(exportData); err != nil {
+	if err := json.MarshalWrite(w, exportData); err != nil {
 		h.writeError(w, fmt.Sprintf("Failed to encode export: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -110,7 +110,7 @@ func (h *ImportExportHandler) exportBookmarks(w http.ResponseWriter, r *http.Req
 func (h *ImportExportHandler) importBookmarks(w http.ResponseWriter, r *http.Request) {
 	var importData ExportData
 	
-	if err := json.NewDecoder(r.Body).Decode(&importData); err != nil {
+	if err := json.UnmarshalRead(r.Body, &importData); err != nil {
 		h.writeError(w, fmt.Sprintf("Invalid JSON: %v", err), http.StatusBadRequest)
 		return
 	}
@@ -157,7 +157,7 @@ func (h *ImportExportHandler) importBookmarks(w http.ResponseWriter, r *http.Req
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	json.MarshalWrite(w, response)
 }
 
 // exportHTML exports bookmarks as HTML (browser-compatible format)
@@ -231,7 +231,7 @@ func (h *ImportExportHandler) exportHTML(w http.ResponseWriter, r *http.Request,
 
 func (h *ImportExportHandler) writeError(w http.ResponseWriter, message string, statusCode int) {
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	json.MarshalWrite(w, map[string]interface{}{
 		"error":  message,
 		"status": statusCode,
 	})

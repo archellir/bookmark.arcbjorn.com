@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"net/http"
 	"strings"
@@ -63,7 +63,7 @@ func (h *ImportHandler) RegisterRoutes(mux *http.ServeMux) {
 
 func (h *ImportHandler) importBookmarks(w http.ResponseWriter, r *http.Request) {
 	var req ImportRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -100,7 +100,7 @@ func (h *ImportHandler) importBookmarks(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	json.MarshalWrite(w, response)
 }
 
 func (h *ImportHandler) parseChrome(data string) ([]*models.Bookmark, error) {

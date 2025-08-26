@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -100,7 +100,7 @@ func (h *BookmarkHandler) listBookmarks(w http.ResponseWriter, r *http.Request) 
 // createBookmark handles POST /api/bookmarks
 func (h *BookmarkHandler) createBookmark(w http.ResponseWriter, r *http.Request) {
 	var req models.CreateBookmarkRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -229,7 +229,7 @@ func (h *BookmarkHandler) updateBookmark(w http.ResponseWriter, r *http.Request,
 	}
 
 	var req models.UpdateBookmarkRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -518,7 +518,7 @@ func (h *BookmarkHandler) suggestTags(w http.ResponseWriter, r *http.Request) {
 		Description string `json:"description"`
 	}
 	
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -568,7 +568,7 @@ func (h *BookmarkHandler) getUserID(r *http.Request) int {
 // writeJSON writes a JSON response
 func (h *BookmarkHandler) writeJSON(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(data); err != nil {
+	if err := json.MarshalWrite(w, data); err != nil {
 		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
 	}
 }
@@ -583,7 +583,7 @@ func (h *BookmarkHandler) writeError(w http.ResponseWriter, message string, stat
 		"status": statusCode,
 	}
 	
-	json.NewEncoder(w).Encode(response)
+	json.MarshalWrite(w, response)
 }
 
 // determineCorrectionType determines the type of tag correction

@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"sync"
 	"time"
-	"encoding/json"
+	"encoding/json/v2"
 	"strings"
 	"net"
 )
@@ -144,7 +144,7 @@ func (rl *RateLimiter) writeRateLimitError(w http.ResponseWriter, r *http.Reques
 		"status":  http.StatusTooManyRequests,
 	}
 
-	json.NewEncoder(w).Encode(response)
+	json.MarshalWrite(w, response)
 }
 
 // cleanupClients removes old inactive clients to prevent memory leaks

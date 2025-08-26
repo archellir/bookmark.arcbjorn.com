@@ -143,12 +143,18 @@ func NewONNXInferenceEngine(modelPath string) *ONNXInferenceEngine {
 
 // Initialize loads ONNX models and prepares the inference engine
 func (oe *ONNXInferenceEngine) Initialize() error {
-	// TODO: Use os.Root methods when available in stable Go 1.25 release
-	// for safer file operations with security boundaries
-	
-	// Create model directory if it doesn't exist
-	if err := os.MkdirAll(oe.modelPath, 0755); err != nil {
-		return fmt.Errorf("failed to create model directory: %w", err)
+	// Use os.Root for safer file operations with security boundaries
+	root, err := os.OpenRoot(".")
+	if err != nil {
+		// Fallback to standard operations if os.Root fails
+		if err := os.MkdirAll(oe.modelPath, 0755); err != nil {
+			return fmt.Errorf("failed to create model directory: %w", err)
+		}
+	} else {
+		// Use os.Root for secure directory creation
+		if err := root.MkdirAll(oe.modelPath, 0755); err != nil {
+			return fmt.Errorf("failed to create model directory: %w", err)
+		}
 	}
 	
 	// Initialize text encoder
@@ -268,18 +274,38 @@ func (oe *ONNXInferenceEngine) checkModelsExist() bool {
 
 func (oe *ONNXInferenceEngine) createFallbackModels() error {
 	// Create model metadata files to indicate fallback mode
-	for _, model := range oe.supportedModels {
-		metaFile := filepath.Join(oe.modelPath, model+"_meta.json")
-		metadata := map[string]interface{}{
-			"model_type": model,
-			"version":    "fallback-1.0",
-			"created":    time.Now().Format(time.RFC3339),
-			"mode":       "rule_based_fallback",
+	root, err := os.OpenRoot(".")
+	if err != nil {
+		// Fallback to standard file operations
+		for _, model := range oe.supportedModels {
+			metaFile := filepath.Join(oe.modelPath, model+"_meta.json")
+			metadata := map[string]interface{}{
+				"model_type": model,
+				"version":    "fallback-1.0",
+				"created":    time.Now().Format(time.RFC3339),
+				"mode":       "rule_based_fallback",
+			}
+			
+			data, _ := json.Marshal(metadata)
+			if err := os.WriteFile(metaFile, data, 0644); err != nil {
+				return fmt.Errorf("failed to create metadata for %s: %w", model, err)
+			}
 		}
-		
-		data, _ := json.Marshal(metadata)
-		if err := os.WriteFile(metaFile, data, 0644); err != nil {
-			return fmt.Errorf("failed to create metadata for %s: %w", model, err)
+	} else {
+		// Use os.Root for secure file operations
+		for _, model := range oe.supportedModels {
+			metaFile := filepath.Join(oe.modelPath, model+"_meta.json")
+			metadata := map[string]interface{}{
+				"model_type": model,
+				"version":    "fallback-1.0",
+				"created":    time.Now().Format(time.RFC3339),
+				"mode":       "rule_based_fallback",
+			}
+			
+			data, _ := json.Marshal(metadata)
+			if err := root.WriteFile(metaFile, data, 0644); err != nil {
+				return fmt.Errorf("failed to create metadata for %s: %w", model, err)
+			}
 		}
 	}
 	

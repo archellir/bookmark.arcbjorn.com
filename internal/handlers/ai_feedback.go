@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -82,7 +82,7 @@ func (h *AIFeedbackHandler) suggestTags(w http.ResponseWriter, r *http.Request) 
 	}
 
 	var req TagSuggestionRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -131,7 +131,7 @@ func (h *AIFeedbackHandler) submitFeedback(w http.ResponseWriter, r *http.Reques
 	}
 
 	var req FeedbackRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -253,7 +253,7 @@ func (h *AIFeedbackHandler) batchRecategorize(w http.ResponseWriter, r *http.Req
 	}
 
 	var req RecategorizeRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -455,7 +455,7 @@ func (h *AIFeedbackHandler) suggestSemanticTags(w http.ResponseWriter, r *http.R
 	}
 
 	var req TagSuggestionRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -530,7 +530,7 @@ func (h *AIFeedbackHandler) combineSemanticSuggestions(traditionalTags []string,
 
 func (h *AIFeedbackHandler) writeJSON(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(data); err != nil {
+	if err := json.MarshalWrite(w, data); err != nil {
 		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
 	}
 }
@@ -544,5 +544,5 @@ func (h *AIFeedbackHandler) writeError(w http.ResponseWriter, message string, st
 		"status": statusCode,
 	}
 	
-	json.NewEncoder(w).Encode(response)
+	json.MarshalWrite(w, response)
 }

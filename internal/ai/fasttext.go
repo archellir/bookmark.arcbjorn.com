@@ -236,12 +236,18 @@ func (ft *FastTextClassifier) createDefaultModel() error {
 	
 	ft.isInitialized = true
 	
-	// TODO: Use os.Root methods when available in stable Go 1.25 release
-	// for safer file operations with security boundaries
-	
-	// Create model directory and save
-	if err := os.MkdirAll(ft.modelPath, 0755); err != nil {
-		return fmt.Errorf("failed to create model directory: %w", err)
+	// Use os.Root for safer file operations with security boundaries
+	root, err := os.OpenRoot(".")
+	if err != nil {
+		// Fallback to standard operations if os.Root fails
+		if err := os.MkdirAll(ft.modelPath, 0755); err != nil {
+			return fmt.Errorf("failed to create model directory: %w", err)
+		}
+	} else {
+		// Use os.Root for secure directory creation
+		if err := root.MkdirAll(ft.modelPath, 0755); err != nil {
+			return fmt.Errorf("failed to create model directory: %w", err)
+		}
 	}
 	
 	return ft.saveModel()
@@ -494,8 +500,59 @@ func (ft *FastTextClassifier) trainVectors(trainingData []TrainingExample) {
 }
 
 func (ft *FastTextClassifier) saveModel() error {
-	// TODO: Use os.Root methods when available in stable Go 1.25 release
+	// Use os.Root for safer file operations with security boundaries
+	root, err := os.OpenRoot(".")
+	if err != nil {
+		// Fallback to standard file operations
+		return ft.saveModelStandard()
+	}
 	
+	// Save vocabulary using os.Root
+	vocabFile := filepath.Join(ft.modelPath, "vocab.txt")
+	file, err := root.OpenFile(vocabFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to create vocab file: %w", err)
+	}
+	defer file.Close()
+	
+	writer := bufio.NewWriter(file)
+	for word, idx := range ft.vocabulary {
+		fmt.Fprintf(writer, "%s %d\n", word, idx)
+	}
+	writer.Flush()
+	
+	// Save labels
+	labelFile := filepath.Join(ft.modelPath, "labels.txt")
+	file, err = root.OpenFile(labelFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to create labels file: %w", err)
+	}
+	defer file.Close()
+	
+	writer = bufio.NewWriter(file)
+	for _, label := range ft.labels {
+		fmt.Fprintf(writer, "%s\n", label)
+	}
+	writer.Flush()
+	
+	// Save model metadata
+	metaFile := filepath.Join(ft.modelPath, "meta.txt")
+	file, err = root.OpenFile(metaFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to create meta file: %w", err)
+	}
+	defer file.Close()
+	
+	fmt.Fprintf(file, "vector_size %d\n", ft.vectorSize)
+	fmt.Fprintf(file, "vocab_size %d\n", len(ft.vocabulary))
+	fmt.Fprintf(file, "label_size %d\n", len(ft.labels))
+	fmt.Fprintf(file, "threshold %f\n", ft.threshold)
+	
+	return nil
+}
+
+// saveModelStandard is a fallback for when os.Root is not available
+func (ft *FastTextClassifier) saveModelStandard() error {
 	// Save vocabulary
 	vocabFile := filepath.Join(ft.modelPath, "vocab.txt")
 	file, err := os.Create(vocabFile)
@@ -532,17 +589,94 @@ func (ft *FastTextClassifier) saveModel() error {
 	}
 	defer file.Close()
 	
-	fmt.Fprintf(file, "vector_size %d\n", ft.vectorSize)
-	fmt.Fprintf(file, "vocab_size %d\n", len(ft.vocabulary))
-	fmt.Fprintf(file, "label_size %d\n", len(ft.labels))
-	fmt.Fprintf(file, "threshold %f\n", ft.threshold)
+	writer = bufio.NewWriter(file)
+	fmt.Fprintf(writer, "vocab_size=%d\n", len(ft.vocabulary))
+	fmt.Fprintf(writer, "labels=%d\n", len(ft.labels))
+	fmt.Fprintf(writer, "vector_size=%d\n", ft.vectorSize)
+	writer.Flush()
 	
 	return nil
 }
 
 func (ft *FastTextClassifier) loadModel() error {
-	// TODO: Use os.Root methods when available in stable Go 1.25 release
+	// Use os.Root for safer file operations with security boundaries
+	root, err := os.OpenRoot(".")
+	if err != nil {
+		// Fallback to standard file operations
+		return ft.loadModelStandard()
+	}
 	
+	// Load vocabulary using os.Root
+	vocabFile := filepath.Join(ft.modelPath, "vocab.txt")
+	file, err := root.Open(vocabFile)
+	if err != nil {
+		return fmt.Errorf("failed to open vocab file: %w", err)
+	}
+	defer file.Close()
+	
+	ft.vocabulary = make(map[string]int)
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		parts := strings.Fields(scanner.Text())
+		if len(parts) == 2 {
+			word := parts[0]
+			idx, err := strconv.Atoi(parts[1])
+			if err == nil {
+				ft.vocabulary[word] = idx
+			}
+		}
+	}
+	
+	// Load labels
+	labelFile := filepath.Join(ft.modelPath, "labels.txt")
+	file, err = root.Open(labelFile)
+	if err != nil {
+		return fmt.Errorf("failed to open labels file: %w", err)
+	}
+	defer file.Close()
+	
+	ft.labels = []string{}
+	scanner = bufio.NewScanner(file)
+	for scanner.Scan() {
+		ft.labels = append(ft.labels, strings.TrimSpace(scanner.Text()))
+	}
+	
+	// Load metadata
+	metaFile := filepath.Join(ft.modelPath, "meta.txt")
+	file, err = root.Open(metaFile)
+	if err == nil {
+		defer file.Close()
+		scanner = bufio.NewScanner(file)
+		for scanner.Scan() {
+			parts := strings.Fields(scanner.Text())
+			if len(parts) == 2 {
+				key := parts[0]
+				value := parts[1]
+				
+				switch key {
+				case "vector_size":
+					if val, err := strconv.Atoi(value); err == nil {
+						ft.vectorSize = val
+					}
+				case "threshold":
+					if val, err := strconv.ParseFloat(value, 64); err == nil {
+						ft.threshold = val
+					}
+				}
+			}
+		}
+	}
+	
+	// Initialize vectors (would load from binary file in full implementation)
+	ft.initializeVectors()
+	ft.createRuleBasedVectors()
+	
+	ft.isInitialized = true
+	return nil
+}
+
+// loadModelStandard is a fallback for when os.Root is not available
+func (ft *FastTextClassifier) loadModelStandard() error {
 	// Load vocabulary
 	vocabFile := filepath.Join(ft.modelPath, "vocab.txt")
 	file, err := os.Open(vocabFile)
@@ -585,10 +719,10 @@ func (ft *FastTextClassifier) loadModel() error {
 		defer file.Close()
 		scanner = bufio.NewScanner(file)
 		for scanner.Scan() {
-			parts := strings.Fields(scanner.Text())
+			parts := strings.Split(scanner.Text(), "=")
 			if len(parts) == 2 {
-				key := parts[0]
-				value := parts[1]
+				key := strings.TrimSpace(parts[0])
+				value := strings.TrimSpace(parts[1])
 				
 				switch key {
 				case "vector_size":

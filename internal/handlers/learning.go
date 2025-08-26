@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -53,7 +53,7 @@ func (h *LearningHandler) submitFeedback(w http.ResponseWriter, r *http.Request)
 		FinalTags     []string `json:"final_tags"`
 	}
 	
-	if err := json.NewDecoder(r.Body).Decode(&feedback); err != nil {
+	if err := json.UnmarshalRead(r.Body, &feedback); err != nil {
 		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -279,7 +279,7 @@ func (h *LearningHandler) analyzeCorrectionsForPatterns(corrections []models.Tag
 // writeJSON writes a JSON response
 func (h *LearningHandler) writeJSON(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(data); err != nil {
+	if err := json.MarshalWrite(w, data); err != nil {
 		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
 	}
 }
@@ -294,7 +294,7 @@ func (h *LearningHandler) writeError(w http.ResponseWriter, message string, stat
 		"status": statusCode,
 	}
 	
-	json.NewEncoder(w).Encode(response)
+	json.MarshalWrite(w, response)
 }
 
 // parseURL is a helper to parse URLs safely

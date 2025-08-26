@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -70,7 +70,7 @@ func (h *TagHandler) listTags(w http.ResponseWriter, r *http.Request) {
 // createTag handles POST /api/tags
 func (h *TagHandler) createTag(w http.ResponseWriter, r *http.Request) {
 	var req models.CreateTagRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -133,7 +133,7 @@ func (h *TagHandler) updateTag(w http.ResponseWriter, r *http.Request, idStr str
 	}
 
 	var req models.UpdateTagRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -251,7 +251,7 @@ func (h *TagHandler) cleanupUnusedTags(w http.ResponseWriter, r *http.Request) {
 // writeJSON writes a JSON response
 func (h *TagHandler) writeJSON(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(data); err != nil {
+	if err := json.MarshalWrite(w, data); err != nil {
 		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
 	}
 }
@@ -266,5 +266,5 @@ func (h *TagHandler) writeError(w http.ResponseWriter, message string, statusCod
 		"status": statusCode,
 	}
 	
-	json.NewEncoder(w).Encode(response)
+	json.MarshalWrite(w, response)
 }

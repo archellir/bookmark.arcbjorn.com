@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"net/http"
 
@@ -64,7 +64,7 @@ func (h *DuplicateHandler) checkDuplicates(w http.ResponseWriter, r *http.Reques
 	}
 
 	var req CheckDuplicatesRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -112,7 +112,7 @@ func (h *DuplicateHandler) mergeDuplicates(w http.ResponseWriter, r *http.Reques
 	}
 
 	var req MergeDuplicatesRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -144,7 +144,7 @@ func (h *DuplicateHandler) analyzeURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req URLAnalyzeRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -172,7 +172,7 @@ func (h *DuplicateHandler) expandURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req URLAnalyzeRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -207,7 +207,7 @@ func (h *DuplicateHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req URLShortenRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -245,7 +245,7 @@ func (h *DuplicateHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
 // writeJSON writes a JSON response
 func (h *DuplicateHandler) writeJSON(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(data); err != nil {
+	if err := json.MarshalWrite(w, data); err != nil {
 		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
 	}
 }
@@ -260,5 +260,5 @@ func (h *DuplicateHandler) writeError(w http.ResponseWriter, message string, sta
 		"status": statusCode,
 	}
 
-	json.NewEncoder(w).Encode(response)
+	json.MarshalWrite(w, response)
 }

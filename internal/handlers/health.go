@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"net/http"
 	"strconv"
 	"strings"
@@ -32,7 +32,7 @@ func (h *HealthHandler) getHealthStats(w http.ResponseWriter, r *http.Request) {
 	stats := h.healthChecker.GetHealthStats()
 	
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(stats)
+	json.MarshalWrite(w, stats)
 }
 
 // getBrokenBookmarks returns all bookmarks with broken links
@@ -40,7 +40,7 @@ func (h *HealthHandler) getBrokenBookmarks(w http.ResponseWriter, r *http.Reques
 	broken := h.healthChecker.GetBrokenBookmarks()
 	
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	json.MarshalWrite(w, map[string]interface{}{
 		"broken_bookmarks": broken,
 		"count":           len(broken),
 	})
@@ -51,7 +51,7 @@ func (h *HealthHandler) getAllHealth(w http.ResponseWriter, r *http.Request) {
 	health := h.healthChecker.GetAllHealth()
 	
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(health)
+	json.MarshalWrite(w, health)
 }
 
 // getBookmarkHealth returns health data for a specific bookmark
@@ -71,7 +71,7 @@ func (h *HealthHandler) getBookmarkHealth(w http.ResponseWriter, r *http.Request
 	}
 	
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(health)
+	json.MarshalWrite(w, health)
 }
 
 // checkBookmarkNow triggers an immediate health check for a specific bookmark
@@ -87,5 +87,5 @@ func (h *HealthHandler) checkBookmarkNow(w http.ResponseWriter, r *http.Request)
 	health := h.healthChecker.CheckBookmarkNow(bookmarkID)
 	
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(health)
+	json.MarshalWrite(w, health)
 }

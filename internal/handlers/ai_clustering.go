@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"math"
 	"net/http"
@@ -43,7 +43,7 @@ func (h *AIClusteringHandler) clusterBookmarksHandler(w http.ResponseWriter, r *
 	}
 
 	var req ai.ClusteringRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -152,7 +152,7 @@ func (h *AIClusteringHandler) previewClustering(w http.ResponseWriter, r *http.R
 	}
 
 	var req ai.ClusteringRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -448,7 +448,7 @@ func (h *AIClusteringHandler) extractDomain(url string) string {
 
 func (h *AIClusteringHandler) writeJSON(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(data); err != nil {
+	if err := json.MarshalWrite(w, data); err != nil {
 		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
 	}
 }
@@ -462,5 +462,5 @@ func (h *AIClusteringHandler) writeError(w http.ResponseWriter, message string, 
 		"status": statusCode,
 	}
 	
-	json.NewEncoder(w).Encode(response)
+	json.MarshalWrite(w, response)
 }

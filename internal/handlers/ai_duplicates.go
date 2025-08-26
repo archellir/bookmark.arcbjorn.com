@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -103,7 +103,7 @@ func (h *AIDuplicatesHandler) checkDuplicates(w http.ResponseWriter, r *http.Req
 	}
 
 	var req AICheckDuplicatesRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -213,7 +213,7 @@ func (h *AIDuplicatesHandler) mergeDuplicates(w http.ResponseWriter, r *http.Req
 	}
 
 	var req AIMergeDuplicatesRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -684,7 +684,7 @@ func (h *AIDuplicatesHandler) getUserID(r *http.Request) int {
 
 func (h *AIDuplicatesHandler) writeJSON(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(data); err != nil {
+	if err := json.MarshalWrite(w, data); err != nil {
 		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
 	}
 }
@@ -698,5 +698,5 @@ func (h *AIDuplicatesHandler) writeError(w http.ResponseWriter, message string, 
 		"status": statusCode,
 	}
 	
-	json.NewEncoder(w).Encode(response)
+	json.MarshalWrite(w, response)
 }

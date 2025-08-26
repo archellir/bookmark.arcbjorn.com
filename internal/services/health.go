@@ -159,16 +159,13 @@ func (hc *HealthChecker) checkBatch(bookmarks []models.Bookmark) {
 	var wg sync.WaitGroup
 	
 	for _, bookmark := range bookmarks {
-		wg.Add(1)
-		go func(b models.Bookmark) {
-			defer wg.Done()
-			
+		wg.Go(func() {
 			// Acquire semaphore
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 			
-			hc.checkBookmark(b)
-		}(bookmark)
+			hc.checkBookmark(bookmark)
+		})
 	}
 	
 	wg.Wait()

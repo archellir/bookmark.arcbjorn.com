@@ -1,32 +1,22 @@
 package logger
 
 import (
-	"encoding/json"
-	"log"
+	"log/slog"
 	"os"
-	"time"
 )
 
 type Logger struct {
-	*log.Logger
-	level LogLevel
+	*slog.Logger
 }
 
-type LogLevel int
+type LogLevel slog.Level
 
 const (
-	DEBUG LogLevel = iota
-	INFO
-	WARN
-	ERROR
+	DEBUG = LogLevel(slog.LevelDebug)
+	INFO  = LogLevel(slog.LevelInfo)
+	WARN  = LogLevel(slog.LevelWarn)
+	ERROR = LogLevel(slog.LevelError)
 )
-
-type LogEntry struct {
-	Timestamp string      `json:"timestamp"`
-	Level     string      `json:"level"`
-	Message   string      `json:"message"`
-	Data      interface{} `json:"data,omitempty"`
-}
 
 var std *Logger
 
@@ -35,69 +25,69 @@ func init() {
 }
 
 func New() *Logger {
+	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	})
 	return &Logger{
-		Logger: log.New(os.Stdout, "", 0),
-		level:  INFO,
+		Logger: slog.New(handler),
 	}
-}
-
-func (l *Logger) logJSON(level LogLevel, message string, data interface{}) {
-	if level < l.level {
-		return
-	}
-
-	levelNames := []string{"DEBUG", "INFO", "WARN", "ERROR"}
-	
-	entry := LogEntry{
-		Timestamp: time.Now().UTC().Format(time.RFC3339),
-		Level:     levelNames[level],
-		Message:   message,
-		Data:      data,
-	}
-
-	jsonBytes, err := json.Marshal(entry)
-	if err != nil {
-		l.Printf("Failed to marshal log entry: %v", err)
-		return
-	}
-
-	l.Print(string(jsonBytes))
 }
 
 func (l *Logger) Debug(message string, data ...interface{}) {
-	var d interface{}
 	if len(data) > 0 {
-		d = data[0]
+		attrs := l.convertToAttrs(data[0])
+		l.Logger.Debug(message, slog.GroupAttrs("data", attrs...))
+	} else {
+		l.Logger.Debug(message)
 	}
-	l.logJSON(DEBUG, message, d)
 }
 
 func (l *Logger) Info(message string, data ...interface{}) {
-	var d interface{}
 	if len(data) > 0 {
-		d = data[0]
+		attrs := l.convertToAttrs(data[0])
+		l.Logger.Info(message, slog.GroupAttrs("data", attrs...))
+	} else {
+		l.Logger.Info(message)
 	}
-	l.logJSON(INFO, message, d)
 }
 
 func (l *Logger) Warn(message string, data ...interface{}) {
-	var d interface{}
 	if len(data) > 0 {
-		d = data[0]
+		attrs := l.convertToAttrs(data[0])
+		l.Logger.Warn(message, slog.GroupAttrs("data", attrs...))
+	} else {
+		l.Logger.Warn(message)
 	}
-	l.logJSON(WARN, message, d)
 }
 
 func (l *Logger) Error(message string, data ...interface{}) {
-	var d interface{}
 	if len(data) > 0 {
-		d = data[0]
+		attrs := l.convertToAttrs(data[0])
+		l.Logger.Error(message, slog.GroupAttrs("data", attrs...))
+	} else {
+		l.Logger.Error(message)
 	}
-	l.logJSON(ERROR, message, d)
 }
 
 func (l *Logger) SetLevel(level LogLevel) {
-	l.level = level
+	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.Level(level),
+	})
+	l.Logger = slog.New(handler)
+}
+
+// convertToAttrs converts arbitrary data to slog attributes
+func (l *Logger) convertToAttrs(data interface{}) []slog.Attr {
+	switch v := data.(type) {
+	case map[string]interface{}:
+		var attrs []slog.Attr
+		for key, value := range v {
+			attrs = append(attrs, slog.Any(key, value))
+		}
+		return attrs
+	default:
+		return []slog.Attr{slog.Any("value", v)}
+	}
 }
 
 // Package level functions

@@ -2,7 +2,7 @@ package db
 
 import (
 	"database/sql"
-	"encoding/json"
+	"encoding/json/v2"
 	"time"
 
 	"torimemo/internal/models"

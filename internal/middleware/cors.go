@@ -87,3 +87,35 @@ func getAllowedOrigin(requestOrigin string) string {
 	
 	return "null"
 }
+
+// CSRFProtectionMiddleware adds CSRF protection using Go 1.25's CrossOriginProtection
+func CSRFProtectionMiddleware(next http.Handler) http.Handler {
+	// Create CSRF protection
+	antiCSRF := http.NewCrossOriginProtection()
+	
+	// Add trusted origins from environment
+	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
+	if allowedOrigins == "" {
+		// Default allowed origins for development and common deployments
+		allowedOrigins = "https://bookmark.arcbjorn.com,https://bookmarks.yourdomain.com,http://localhost:3000,http://localhost:5173,http://localhost:8080"
+	}
+
+	// Add each allowed origin as trusted
+	origins := strings.Split(allowedOrigins, ",")
+	for _, origin := range origins {
+		origin = strings.TrimSpace(origin)
+		if origin != "" && origin != "*" {
+			antiCSRF.AddTrustedOrigin(origin)
+		}
+	}
+	
+	// In development, be more permissive
+	if os.Getenv("ENV") != "production" {
+		antiCSRF.AddTrustedOrigin("http://localhost:3000")
+		antiCSRF.AddTrustedOrigin("http://localhost:5173")
+		antiCSRF.AddTrustedOrigin("http://localhost:8080")
+	}
+	
+	// Wrap the handler with CSRF protection
+	return antiCSRF.Handler(next)
+}

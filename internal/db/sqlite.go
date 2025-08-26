@@ -24,12 +24,18 @@ type DB struct {
 
 // NewDB creates a new database connection and runs migrations
 func NewDB(dbPath string) (*DB, error) {
-	// TODO: Use os.Root methods when available in stable Go 1.25 release
-	// for safer file operations with security boundaries
-	
-	// Ensure directory exists
-	if err := os.MkdirAll(filepath.Dir(dbPath), 0755); err != nil {
-		return nil, fmt.Errorf("failed to create db directory: %w", err)
+	// Use os.Root for safer file operations with security boundaries
+	root, err := os.OpenRoot(".")
+	if err != nil {
+		// Fallback to standard operations if os.Root fails
+		if err := os.MkdirAll(filepath.Dir(dbPath), 0755); err != nil {
+			return nil, fmt.Errorf("failed to create db directory: %w", err)
+		}
+	} else {
+		// Use os.Root for secure directory creation
+		if err := root.MkdirAll(filepath.Dir(dbPath), 0755); err != nil {
+			return nil, fmt.Errorf("failed to create db directory: %w", err)
+		}
 	}
 
 	// Open database connection

@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"net/http"
 	"strconv"
 	"strings"
@@ -70,7 +70,7 @@ func (h *AdvancedSearchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 
 	// Parse request body
 	var req AdvancedSearchRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		// Try to parse from query parameters as fallback
 		req = h.parseQueryParams(r)
 	}
@@ -101,7 +101,7 @@ func (h *AdvancedSearchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(results)
+	json.MarshalWrite(w, results)
 }
 
 func (h *AdvancedSearchHandler) parseQueryParams(r *http.Request) AdvancedSearchRequest {
@@ -353,7 +353,7 @@ func (h *AdvancedSearchHandler) buildSearchSummary(req *AdvancedSearchRequest, b
 
 func (h *AdvancedSearchHandler) writeError(w http.ResponseWriter, message string, statusCode int) {
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	json.MarshalWrite(w, map[string]interface{}{
 		"error":  message,
 		"status": statusCode,
 	})

@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"net/http"
 	"os"
@@ -47,7 +47,7 @@ func (h *AuthHandler) register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req models.CreateUserRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -116,7 +116,7 @@ func (h *AuthHandler) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req models.LoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -323,7 +323,7 @@ func (h *AuthHandler) getCurrentUser(w http.ResponseWriter, r *http.Request) {
 // writeJSON writes a JSON response
 func (h *AuthHandler) writeJSON(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(data); err != nil {
+	if err := json.MarshalWrite(w, data); err != nil {
 		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
 	}
 }
@@ -338,5 +338,5 @@ func (h *AuthHandler) writeError(w http.ResponseWriter, message string, statusCo
 		"status": statusCode,
 	}
 
-	json.NewEncoder(w).Encode(response)
+	json.MarshalWrite(w, response)
 }

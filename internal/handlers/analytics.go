@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"net/http"
 	"time"
 
@@ -91,7 +91,7 @@ func (h *AnalyticsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(analytics)
+	json.MarshalWrite(w, analytics)
 }
 
 func (h *AnalyticsHandler) getAnalytics() (*AnalyticsResponse, error) {
@@ -363,7 +363,7 @@ func (h *AnalyticsHandler) getIntValue(stats map[string]interface{}, key string)
 
 func (h *AnalyticsHandler) writeError(w http.ResponseWriter, message string, statusCode int) {
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	json.MarshalWrite(w, map[string]interface{}{
 		"error":  message,
 		"status": statusCode,
 	})

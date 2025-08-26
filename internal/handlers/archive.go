@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"io"
 	"net/http"
@@ -53,7 +53,7 @@ func (h *ArchiveHandler) archiveContent(w http.ResponseWriter, r *http.Request) 
 	}
 
 	var req ArchiveRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		h.writeError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -234,7 +234,7 @@ func (h *ArchiveHandler) extractTextContent(content string) string {
 // writeJSON writes a JSON response
 func (h *ArchiveHandler) writeJSON(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(data); err != nil {
+	if err := json.MarshalWrite(w, data); err != nil {
 		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
 	}
 }
@@ -249,5 +249,5 @@ func (h *ArchiveHandler) writeError(w http.ResponseWriter, message string, statu
 		"status": statusCode,
 	}
 	
-	json.NewEncoder(w).Encode(response)
+	json.MarshalWrite(w, response)
 }

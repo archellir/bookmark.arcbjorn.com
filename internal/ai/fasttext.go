@@ -236,6 +236,9 @@ func (ft *FastTextClassifier) createDefaultModel() error {
 	
 	ft.isInitialized = true
 	
+	// TODO: Use os.Root methods when available in stable Go 1.25 release
+	// for safer file operations with security boundaries
+	
 	// Create model directory and save
 	if err := os.MkdirAll(ft.modelPath, 0755); err != nil {
 		return fmt.Errorf("failed to create model directory: %w", err)
@@ -491,6 +494,8 @@ func (ft *FastTextClassifier) trainVectors(trainingData []TrainingExample) {
 }
 
 func (ft *FastTextClassifier) saveModel() error {
+	// TODO: Use os.Root methods when available in stable Go 1.25 release
+	
 	// Save vocabulary
 	vocabFile := filepath.Join(ft.modelPath, "vocab.txt")
 	file, err := os.Create(vocabFile)
@@ -536,6 +541,8 @@ func (ft *FastTextClassifier) saveModel() error {
 }
 
 func (ft *FastTextClassifier) loadModel() error {
+	// TODO: Use os.Root methods when available in stable Go 1.25 release
+	
 	// Load vocabulary
 	vocabFile := filepath.Join(ft.modelPath, "vocab.txt")
 	file, err := os.Open(vocabFile)

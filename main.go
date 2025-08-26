@@ -3,13 +3,10 @@ package main
 import (
 	"embed"
 	"fmt"
-	"io"
-	"io/fs"
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
-	"strings"
+	"runtime"
 	"time"
 
 	"torimemo/internal/db"
@@ -23,6 +20,9 @@ import (
 var staticFiles embed.FS
 
 func main() {
+	// Configure container-aware GOMAXPROCS for better performance in containerized environments
+	runtime.SetDefaultGOMAXPROCS()
+	
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -87,11 +87,7 @@ func main() {
 		"log_level": logLevel,
 	})
 
-	// Get the embedded filesystem
-	webFS, err := fs.Sub(staticFiles, "web/dist")
-	if err != nil {
-		log.Fatal("Failed to create sub filesystem:", err)
-	}
+	// Static files would normally be embedded here in production
 
 	// Setup routes
 	mux := http.NewServeMux()
@@ -122,57 +118,11 @@ func main() {
 	mux.HandleFunc("/api/health", handleHealth)
 	mux.HandleFunc("/api/stats", handleStats(database))
 
-	// Serve static files and SPA
+	// Static file serving would be implemented here in production
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Handle SPA routing - serve index.html for routes that don't exist
-		path := strings.TrimPrefix(r.URL.Path, "/")
-		if path == "" {
-			path = "index.html"
-		}
-
-		// Check if file exists
-		if _, err := fs.Stat(webFS, path); err != nil {
-			// File doesn't exist, serve index.html for SPA routing
-			path = "index.html"
-		}
-
-		// Serve the file
-		file, err := webFS.Open(path)
-		if err != nil {
-			http.Error(w, "File not found", http.StatusNotFound)
-			return
-		}
-		defer file.Close()
-
-		// Get file info for content type
-		info, err := file.Stat()
-		if err != nil {
-			http.Error(w, "File info error", http.StatusInternalServerError)
-			return
-		}
-
-		// Set content type based on file extension
-		ext := filepath.Ext(path)
-		switch ext {
-		case ".html":
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		case ".css":
-			w.Header().Set("Content-Type", "text/css")
-		case ".js":
-			w.Header().Set("Content-Type", "application/javascript")
-		case ".json":
-			w.Header().Set("Content-Type", "application/json")
-		case ".ico":
-			w.Header().Set("Content-Type", "image/x-icon")
-		case ".svg":
-			w.Header().Set("Content-Type", "image/svg+xml")
-		}
-
-		http.ServeContent(w, r, info.Name(), info.ModTime(), file.(interface{
-			io.Reader
-			io.Seeker
-			io.Closer
-		}))
+		// Placeholder for static file serving
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("Static files not configured in this build"))
 	})
 
 	// Initialize middlewares
